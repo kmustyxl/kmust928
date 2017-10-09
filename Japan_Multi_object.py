@@ -204,8 +204,8 @@ def Japan_Multi_object(pop_gen):
         non_dominated_pop = update_non_dominated(non_dominated_pop, temp_non_dominated,factory_job_set)
     return non_dominated_pop
 
-non_dominated_pop = Japan_Multi_object(pop_gen)
-print(non_dominated_pop[0])
+#non_dominated_pop = Japan_Multi_object(pop_gen)
+#print(non_dominated_pop[0])
 
 
 

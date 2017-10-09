@@ -254,7 +254,7 @@ def block_3dim(Mat_pop, len_job, update_popsize):
                 block_Matrix[loc, h, int(m), int(n)] = 0
             else:
                 key = False
-
+    #---------------------------------------------------------------------------------------------
 
     for i in range(num_factory):    #组合概率高的block 剔除存在冲突的block
         select_job = set()
@@ -346,7 +346,7 @@ def Green_Bayes_net(pop_gen, ls_frequency, update_popsize):
         prob_mat_first = Bayes_update(Mat_pop, factory_job_set, num_factory, len_job, update_popsize)
         newpop = Green_New_pop(prob_mat_first, num_factory, factory_job_set, Mat_pop, len_job)
         r = random.random()
-        ls_pop = insert_search(newpop, ls_frequency, len_job, num_factory,local_search_size)
+        ls_pop = swap_search(newpop, ls_frequency, len_job, num_factory,local_search_size)
         for i in range(num_factory):
             k_index = -1
             for k in range(local_search_size - 1,-1,-1):
@@ -391,5 +391,5 @@ def Green_Bayes_net(pop_gen, ls_frequency, update_popsize):
     return non_dominated_pop
 
 
-non_dominated_pop = Green_Bayes_net(pop_gen, ls_frequency,update_popsize)
-print(non_dominated_pop[0])
+#non_dominated_pop = Green_Bayes_net(pop_gen, ls_frequency,update_popsize)
+#print(non_dominated_pop[0])
