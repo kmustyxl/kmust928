@@ -235,6 +235,7 @@ def interchange(newpop, ls_frequency, len_job, num_factory, local_search_size):
 def block_3dim(Mat_pop, len_job, update_popsize):
     block = [[] for i in range(num_factory)]
     select_block = [[] for i in range(num_factory)]
+    select_location = [[] for i in range(num_factory)]
     for i in range(num_factory):
         block_Matrix = np.zeros((len_job[i] - 2, num_job, num_job, num_job)) #带位置信息的三维block
         for k in range(int(update_popsize/5)):
@@ -247,41 +248,60 @@ def block_3dim(Mat_pop, len_job, update_popsize):
             loc = int(_positon /height/ raw / column)
             h = int((_positon-(height*raw*column)*loc) / raw / column)
             m, n = divmod((_positon-(height*raw*column)*loc) - (raw * column) * h, column)
-            if block_Matrix[loc,h, int(m), int(n)] >= int(update_popsize/4)*0.2:
+            if block_Matrix[loc,h, int(m), int(n)] >= int(update_popsize/5*0.3):
                 block[i].append([loc, h, int(m), int(n)])
                 #block[i].append(block_Matrix[loc, h, int(m), int(n)])
                 block_Matrix[loc, h, int(m), int(n)] = 0
             else:
                 key = False
-    # for i in range(num_factory):    #组合概率高的block
-    #     if len(block[i]) == 0:
-    #         continue
-    #     j = 0
-    #     if j == 0:
-    #         for job in block[i][0]:
-    #             select_block[i].append(job)
-    #     j += 1
-    #     len_block = len(block[i])
-    #     while j<len_block:
-    #         #print(block[i][j])
-    #         if block[i][j][0] == select_block[i][-2] and block[i][j][1] == select_block[i][-1]:
-    #             if block[i][j][-1] in select_block[i]:
-    #                 j += 1
-    #                 continue
-    #             else:
-    #                 select_block[i].append(block[i][j][-1])
-    #                 j += 1
-    #                 continue
-    #         elif block[i][j][0] == select_block[i][-2]:
-    #             if block[i][j][1] or block[i][j][2] in  select_block[i]:
-    #                 j += 1
-    #                 continue
-    #             else:
-    #                 select_block[i].append(block[i][j][1])
-    #                 select_block[i].append(block[i][j][2])
-    #         j += 1
 
-    return block
+
+    for i in range(num_factory):    #组合概率高的block 剔除存在冲突的block
+        select_job = set()
+        if len(block[i]) == 0:
+            continue
+        j = 0
+        if j == 0:
+            for k in range(1,4):
+                select_job.add(block[i][0][k])
+            select_block[i].append(block[i][0])     #添加第一个块结构
+            select_location[i].append(block[i][0][0])       #记录第一个块结构的位置
+        j += 1
+        len_block = len(block[i])
+        while j<len_block:
+            #print(block[i][j])
+            temp_job = set()
+            for k in range(1, 4):
+                temp_job.add(block[i][j][k])
+            if block[i][j][0] in select_location[i]:
+                j += 1
+                continue
+            elif len(select_job & temp_job) == 0:
+                select_block[i].append(block[i][j])
+                select_location[i].append(block[i][j][0])
+                j += 1
+                continue
+            else:
+                j += 1
+                continue
+            if block[i][j][1] == select_block[i][j-1][-2] and block[i][j][2] == select_block[i][j-1][-1]:
+                if block[i][j][-1] in select_block[i][j-1]:
+                    j += 1
+                    continue
+                else:
+                    select_block[i].append(block[i][j])
+                    select_location[i].append(block[i][j][0])
+                    j += 1
+                    continue
+            elif block[i][j][1] == select_block[i][j-1][-1]:
+                if block[i][j][2] or block[i][j][3] in  select_block[i][j-1]:
+                    j += 1
+                    continue
+                else:
+                    select_block[i].append(block[i][j])
+                    select_location[i].append(block[i][j][0])
+            j += 1
+    return select_block
 
 def block_based(block,  Mat_pop, factory_job_set, len_job, update_popsize):
     #根据精英集合构建的快结构生成新种群
@@ -362,7 +382,14 @@ def Green_Bayes_net(pop_gen, ls_frequency, update_popsize):
                         temp_list = []
                         break
             demo1[i] = sorted(demo1[i], key=lambda x: x[-2])
+        temp_non_dominated = select_non_dominated_pop(num_factory, len_job, demo1)
+        for i in range(num_factory):
+            for j in range(len(temp_non_dominated[i])):
+                if temp_non_dominated[i][j] not in non_dominated_pop[i]:
+                    non_dominated_pop[i].append(temp_non_dominated[i][j])
+        non_dominated_pop = select_non_dominated_pop(num_factory, len_job, non_dominated_pop)
     return non_dominated_pop
+
 
 non_dominated_pop = Green_Bayes_net(pop_gen, ls_frequency,update_popsize)
 print(non_dominated_pop[0])
