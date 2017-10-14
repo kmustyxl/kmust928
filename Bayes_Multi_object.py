@@ -9,7 +9,7 @@ from random import choice
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import time
-
+import itertools
 def speed_Matrix():
     V = [1, 1.3, 1.55, 1.75, 2.1]
     v = np.zeros((num_job, num_machine))
@@ -99,6 +99,25 @@ def select_non_dominated_pop(num_factory, len_job, Mat_pop):
             if b_non_dominated == True:
                 if Mat_pop[i][j][0:len_job[i] + 2] not in temp_non_dominated_pop[i]:
                     temp_non_dominated_pop[i].append(Mat_pop[i][j][0:len_job[i] + 2])
+    return temp_non_dominated_pop
+
+def select_all_f_non_dominated_pop(temp_all_f_dominated):
+    #在所有工厂的帕累托解的组合中找总工厂的帕累托解
+    temp_non_dominated_pop = []
+    len_sol = len(temp_all_f_dominated)
+    for i in range(len_sol):
+        compare_fitness1 = temp_all_f_dominated[i][-2]
+        compare_fitness2 = temp_all_f_dominated[i][-1]
+        b_non_dominated = True
+        for j in range(len_sol):
+            if i != j:
+                if temp_all_f_dominated[j][-2] <= compare_fitness1 and temp_all_f_dominated[j][-1] <= compare_fitness2:
+                    if temp_all_f_dominated[j][-2] < compare_fitness1 or temp_all_f_dominated[j][-1] < compare_fitness2:
+                        b_non_dominated = False
+                        break
+        if b_non_dominated == True:
+            if temp_all_f_dominated[i][:] not in temp_non_dominated_pop:
+                temp_non_dominated_pop.append(temp_all_f_dominated[i])
     return temp_non_dominated_pop
 
 
@@ -390,6 +409,23 @@ def Green_Bayes_net(pop_gen, ls_frequency, update_popsize):
         non_dominated_pop = select_non_dominated_pop(num_factory, len_job, non_dominated_pop)
     return non_dominated_pop
 
+def All_factory_dominated(non_dominated_pop, num_factory):
+    #根据每个工厂的帕累托解确定总工厂的解
+    temp_all_f_dominated = []
+    result = []
+    temp_set = list(itertools.product(non_dominated_pop[0],non_dominated_pop[1]))#lambda x: list(x) for x in non_dominated_pop[0])
+    for individual in temp_set:
+        individual = sorted(individual,key=lambda x:x[-2])
+        sum_green_fitness = 0
+        for indi_green in individual:
+            sum_green_fitness += indi_green[-1]
+        individual[-1][-1] = sum_green_fitness
+        temp_all_f_dominated.append(individual[-1])
+    result = select_all_f_non_dominated_pop(temp_all_f_dominated)
+    print(result)
 
-#non_dominated_pop = Green_Bayes_net(pop_gen, ls_frequency,update_popsize)
+
+non_dominated_pop = Green_Bayes_net(pop_gen, ls_frequency,update_popsize)
+#print(non_dominated_pop[0])
+All_factory_dominated(non_dominated_pop, num_factory)
 #print(non_dominated_pop[0])

@@ -14,6 +14,14 @@ Japan_x = []
 Japan_y = []
 Bayes_x = []
 Bayes_y = []
+
+for i in range(num_factory):
+
+
+
+
+
+
 for individual in Japan[0]:
     Japan_x.append(individual[job_len[0]])
     Japan_y.append(individual[job_len[0] + 1])

@@ -19,3 +19,12 @@ def getPositon():
 
 def Multi_3d_test():
     pass
+I = [1,2,3]
+J = [4,5,6,'A']
+K = [10,11]
+kk = [[1,2,3],[4,5,6,'A'],[10,11]]
+from itertools import combinations
+import itertools
+
+print(list(itertools.product(kk[0],kk[1])))
+
