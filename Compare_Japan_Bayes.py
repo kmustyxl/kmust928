@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 from Bayes_Multi_object import *
 from Japan_Multi_object import *
 time1 = time.clock()
-Japan = Japan_Multi_object(pop_gen)
+Japan = J_All_factory_dominated(num_factory,pop_gen)
 time2 = time.clock()
 print('日本人程序共运行：%s'%(time2-time1))
 time1 = time.clock()
-Bayes = Green_Bayes_net(pop_gen, ls_frequency,update_popsize)
+Bayes = B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory)
 time2 = time.clock()
 print('贝叶斯程序共运行：%s'%(time2-time1))
 job_len = [len(factory_job_set[i]) for i in range(num_factory)]
@@ -15,19 +15,12 @@ Japan_y = []
 Bayes_x = []
 Bayes_y = []
 
-for i in range(num_factory):
-
-
-
-
-
-
-for individual in Japan[0]:
-    Japan_x.append(individual[job_len[0]])
-    Japan_y.append(individual[job_len[0] + 1])
-for individual in Bayes[0]:
-    Bayes_x.append(individual[job_len[0]])
-    Bayes_y.append(individual[job_len[0] + 1])
+for individual in Japan:
+    Japan_x.append(individual[-2])
+    Japan_y.append(individual[-1])
+for individual in Bayes:
+    Bayes_x.append(individual[-2])
+    Bayes_y.append(individual[-1])
 fig = plt.figure()
 ax = fig.add_subplot(111)
 ax.set_xlabel('Fitness')

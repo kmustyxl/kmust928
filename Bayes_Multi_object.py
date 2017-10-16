@@ -409,8 +409,9 @@ def Green_Bayes_net(pop_gen, ls_frequency, update_popsize):
         non_dominated_pop = select_non_dominated_pop(num_factory, len_job, non_dominated_pop)
     return non_dominated_pop
 
-def All_factory_dominated(non_dominated_pop, num_factory):
+def B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory):
     #根据每个工厂的帕累托解确定总工厂的解
+    non_dominated_pop = Green_Bayes_net(pop_gen, ls_frequency,update_popsize)
     temp_all_f_dominated = []
     result = []
     temp_set = list(itertools.product(non_dominated_pop[0],non_dominated_pop[1]))#lambda x: list(x) for x in non_dominated_pop[0])
@@ -422,10 +423,6 @@ def All_factory_dominated(non_dominated_pop, num_factory):
         individual[-1][-1] = sum_green_fitness
         temp_all_f_dominated.append(individual[-1])
     result = select_all_f_non_dominated_pop(temp_all_f_dominated)
-    print(result)
+    return result
 
-
-non_dominated_pop = Green_Bayes_net(pop_gen, ls_frequency,update_popsize)
-#print(non_dominated_pop[0])
-All_factory_dominated(non_dominated_pop, num_factory)
-#print(non_dominated_pop[0])
+B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory)

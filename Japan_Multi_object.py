@@ -204,6 +204,28 @@ def Japan_Multi_object(pop_gen):
         non_dominated_pop = update_non_dominated(non_dominated_pop, temp_non_dominated,factory_job_set)
     return non_dominated_pop
 
+def J_All_factory_dominated(num_factory,pop_gen):
+    #根据每个工厂的帕累托解确定总工厂的解
+    non_dominated_pop = Japan_Multi_object(pop_gen)
+    temp_all_f_dominated = []
+    result = []
+    temp_set = list(itertools.product(non_dominated_pop[0],non_dominated_pop[1]))#lambda x: list(x) for x in non_dominated_pop[0])
+    for individual in temp_set:
+        individual = sorted(individual,key=lambda x:x[-2])
+        sum_green_fitness = 0
+        for indi_green in individual:
+            sum_green_fitness += indi_green[-1]
+        individual[-1][-1] = sum_green_fitness
+        temp_all_f_dominated.append(individual[-1])
+    result = select_all_f_non_dominated_pop(temp_all_f_dominated)
+    return result
+
+
+J_All_factory_dominated(num_factory,pop_gen)
+
+
+
+
 #non_dominated_pop = Japan_Multi_object(pop_gen)
 #print(non_dominated_pop[0])
 
