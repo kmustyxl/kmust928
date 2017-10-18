@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from Bayes_Multi_object import *
 from Japan_Multi_object import *
+from GGA_Multi_object import *
 time1 = time.clock()
 Japan = J_All_factory_dominated(num_factory,pop_gen)
 time2 = time.clock()
@@ -9,24 +10,34 @@ time1 = time.clock()
 Bayes = B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory)
 time2 = time.clock()
 print('贝叶斯程序共运行：%s'%(time2-time1))
-job_len = [len(factory_job_set[i]) for i in range(num_factory)]
+time1 = time.clock()
+GGA = G_All_factory_dominated(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize)
+time2 = time.clock()
+print('GGA程序共运行：%s'%(time2-time1))
+len_job = [len(factory_job_set[i]) for i in range(num_factory)]
 Japan_x = []
 Japan_y = []
 Bayes_x = []
 Bayes_y = []
-
+GGA_x = []
+GGA_y = []
 for individual in Japan:
     Japan_x.append(individual[-2])
     Japan_y.append(individual[-1])
 for individual in Bayes:
     Bayes_x.append(individual[-2])
     Bayes_y.append(individual[-1])
+for individual in GGA:
+    GGA_x.append(individual[-2])
+    GGA_y.append(individual[-1])
+
 fig = plt.figure()
 ax = fig.add_subplot(111)
 ax.set_xlabel('Fitness')
 ax.set_ylabel('Carbon')
 ax.plot(Japan_x, Japan_y, 'rD',label='Japan')
 ax.plot(Bayes_x, Bayes_y, 'gD',label='Bayes')
+ax.plot(GGA_x, GGA_y,'yD',label='GGA')
 plt.grid()
 plt.legend()
 plt.show()

@@ -11,16 +11,14 @@ import matplotlib.pyplot as plt
 import time
 import itertools
 def speed_Matrix():
-    V = [1, 1.3, 1.55, 1.75, 2.1]
+    V = [1, 1.1, 1.2, 1.3, 1.4]
     v = np.zeros((num_job, num_machine))
     for i in range(num_machine):
         for j in range(num_job):
             temp = choice(V)
             v[j][i] = temp
     return v
-
 v = speed_Matrix()
-
 def Green_Calcfitness(n, m, sort, test_data, v):
     c_time1 = np.zeros([n, m])
     c_time1[0][0] = test_data[sort[0]][0] / v[0][0]
@@ -355,11 +353,11 @@ def block_based(block,  Mat_pop, factory_job_set, len_job, update_popsize):
         block_Mat_pop[i] = sorted(block_Mat_pop[i], key=lambda x: x[-2])
     return block_Mat_pop
 
-def Green_Bayes_net(pop_gen, ls_frequency, update_popsize):
+def Green_Bayes_net(pop_gen, ls_frequency, update_popsize, factory_job_set):
     global len_job
     factory_job_set = NEH2(num_job, num_machine, test_data, num_factory)
     len_job = [len(factory_job_set[i]) for i in range(num_factory)]
-    Mat_pop,  non_dominated_pop= green_initial_Bayes(num_machine, num_factory, factory_job_set, test_data, len_job,initial_popsize, update_popsize)
+    Mat_pop,  non_dominated_pop= green_initial_Bayes(num_machine, num_factory, factory_job_set, test_data, len_job,initial_popsize, update_popsize,v)
     temp_list = []
     for gen in range(pop_gen):
         prob_mat_first = Bayes_update(Mat_pop, factory_job_set, num_factory, len_job, update_popsize)
@@ -425,4 +423,4 @@ def B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory):
     result = select_all_f_non_dominated_pop(temp_all_f_dominated)
     return result
 
-B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory)
+#B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory)

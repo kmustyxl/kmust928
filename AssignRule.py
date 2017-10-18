@@ -10,11 +10,11 @@ num_machine = int(input('请输入单工厂机器总数： '))
 num_factory = int(input('请输入工厂总数： '))
 initial_popsize = int(input('请输入初始种群规模： '))
 update_popsize = int(input('请输入更新种群规模： '))
+GGA_popsize = int(input('请输入GGA种群规模： '))
 local_search_size = int(input('请输入局部搜索规模：  '))
 ls_frequency = int(input('请输入局部搜索次数： '))
 pop_gen = int(input('请输入进化代数： '))
 test_data = ld.LoadData(num_job, num_machine)
-
 
 def CalcFitness(n, m, test_data):
     c_time1 = np.zeros([n, m])

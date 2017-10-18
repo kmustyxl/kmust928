@@ -183,11 +183,11 @@ def local_search(num_factory, newpop, factory_job_set, num_machine):
                     continue
     return newpop
 def update_non_dominated(non_dominated_pop, temp_non_dominated,factory_job_set):
-    job_len = [len(factory_job_set[i]) for i in range(num_factory)]
+    len_job = [len(factory_job_set[i]) for i in range(num_factory)]
     for i in range(num_factory):
         for j in range(len(temp_non_dominated[i])):
-            if temp_non_dominated[i][j][0: job_len[i]+2] not in non_dominated_pop[i]:
-                non_dominated_pop[i].append(temp_non_dominated[i][j][0:job_len[i] + 2])
+            if temp_non_dominated[i][j][0: len_job[i]+2] not in non_dominated_pop[i]:
+                non_dominated_pop[i].append(temp_non_dominated[i][j][0:len_job[i] + 2])
     non_dominated_pop = select_non_dominated_pop(num_factory, len_job, non_dominated_pop)
     return non_dominated_pop
 
@@ -221,7 +221,7 @@ def J_All_factory_dominated(num_factory,pop_gen):
     return result
 
 
-J_All_factory_dominated(num_factory,pop_gen)
+#J_All_factory_dominated(num_factory,pop_gen)
 
 
 
