@@ -1,7 +1,8 @@
 from AssignRule import *
 from Bayes_Multi_object import *
 
-factory_job_set =  NEH2(num_job, num_machine, test_data, num_factory)
+
+
 
 def Multi_initial_Japan(num_machine, num_factory, factory_job_set, test_data):
     #每个工厂的工件数
@@ -212,14 +213,16 @@ def J_All_factory_dominated(num_factory,pop_gen):
     temp_set = list(itertools.product(non_dominated_pop[0],non_dominated_pop[1]))#lambda x: list(x) for x in non_dominated_pop[0])
     for individual in temp_set:
         individual = sorted(individual,key=lambda x:x[-2])
+        parteo_solution = [0 for i in range(len(individual[-1]))]
         sum_green_fitness = 0
         for indi_green in individual:
             sum_green_fitness += indi_green[-1]
-        individual[-1][-1] = sum_green_fitness
-        temp_all_f_dominated.append(individual[-1])
+        for i in range(len(individual[-1])):
+            parteo_solution[i] = individual[-1][i]
+        parteo_solution[-1] = sum_green_fitness
+        temp_all_f_dominated.append(parteo_solution)
     result = select_all_f_non_dominated_pop(temp_all_f_dominated)
     return result
-
 
 #J_All_factory_dominated(num_factory,pop_gen)
 
@@ -228,9 +231,6 @@ def J_All_factory_dominated(num_factory,pop_gen):
 
 #non_dominated_pop = Japan_Multi_object(pop_gen)
 #print(non_dominated_pop[0])
-
-
-
 
 
 

@@ -14,7 +14,6 @@ time1 = time.clock()
 GGA = G_All_factory_dominated(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize)
 time2 = time.clock()
 print('GGA程序共运行：%s'%(time2-time1))
-len_job = [len(factory_job_set[i]) for i in range(num_factory)]
 Japan_x = []
 Japan_y = []
 Bayes_x = []
@@ -42,11 +41,13 @@ plt.grid()
 plt.legend()
 plt.show()
 
-def R_NDS(num_factory, Japan_x, Japan_y, Bayes_x, Bayes_y):
+def R_NDS(num_factory, Japan_x, Japan_y, Bayes_x, Bayes_y, GGA_x, GGA_y):
     num_Japan_sol = len(Japan_x)
     num_Bayes_sol = len(Bayes_x)
+    num_GGA_sol = len(GGA_x)
     num_Bayes_pareto = 0
     num_Japan_pareto = 0
+    num_GGA_pareto = 0
     for i in range(num_Bayes_sol):
         fitness1 = Bayes_x[i]
         fitness2 = Bayes_y[i]
@@ -63,9 +64,20 @@ def R_NDS(num_factory, Japan_x, Japan_y, Bayes_x, Bayes_y):
                 if Bayes_x[j] < fitness1 or Bayes_y[j] <= fitness2:
                     num_Japan_pareto += 1
                     break
+    for i in range(num_GGA_sol):
+        fitness1 = GGA_x[i]
+        fitness2 = GGA_y[i]
+        for j in range(num_Bayes_sol):
+            if Bayes_x[j] <= fitness1 and Bayes_y[j] <= fitness2:
+                if Bayes_x[j] < fitness1 or Bayes_y[j] <= fitness2:
+                    num_GGA_pareto += 1
+                    break
     print('Bayes评价指标1： %.2f'%((num_Bayes_sol-num_Bayes_pareto)/num_Bayes_sol))
     print('Bayes评价指标2： %s'%(num_Bayes_sol-num_Bayes_pareto))
     print('Japan评价指标1： %.2f'%((num_Japan_sol-num_Japan_pareto)/num_Japan_sol))
-    print('Japan评价指标1： %s'%(num_Japan_sol-num_Japan_pareto))
+    print('Japan评价指标2： %s'%(num_Japan_sol-num_Japan_pareto))
+    print('GGA评价指标1： %.2f'%((num_GGA_sol-num_GGA_pareto)/num_GGA_sol))
+    print('GGA评价指标2： %s'%(num_GGA_sol-num_GGA_pareto))
 
-R_NDS(num_factory, Japan_x, Japan_y, Bayes_x, Bayes_y)
+
+R_NDS(num_factory, Japan_x, Japan_y, Bayes_x, Bayes_y, GGA_x, GGA_y)

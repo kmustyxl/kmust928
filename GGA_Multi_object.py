@@ -2,41 +2,6 @@ from AssignRule import *
 from Bayes_Multi_object import *
 from Japan_Multi_object import *
 
-factory_job_set =  NEH2(num_job, num_machine, test_data, num_factory)
-
-def Multi_initial_GGA(num_machine, num_factory, factory_job_set, test_data, GGA_popsize):
-    #每个工厂的工件数
-    len_job = [len(factory_job_set[i]) for i in range(num_factory)]
-    #每个工厂的初始数据
-    Mat_pop =[[[0 for i in range(len_job[k] + 3) ]for j in range(GGA_popsize)] for k in range(num_factory)]
-    non_dominated_pop = [[] for k in range(num_factory)]
-    for i in range(num_factory):
-        for j in range(GGA_popsize):
-            sort = random.sample(factory_job_set[i], len_job[i])
-            for k in range(len_job[i] + 1):
-                if k == len_job[i]:
-                    Mat_pop[i][j][k], Mat_pop[i][j][k+1]= TCE(len_job[i], num_machine, sort, test_data,v)
-                else:
-                    Mat_pop[i][j][k] = sort[k]
-        Mat_pop[i] = sorted(Mat_pop[i], key= lambda x:x[-2])
-        for j in range(GGA_popsize):
-            compare_fitness1 = Mat_pop[i][j][len_job[i]]
-            compare_fitness2 = Mat_pop[i][j][len_job[i]+1]
-            b_non_dominated = True
-            for k in range(GGA_popsize):
-                if j != k:
-                    if Mat_pop[i][k][len_job[i]] <= compare_fitness1 and Mat_pop[i][k][len_job[i]+1] <= compare_fitness2:
-                        if Mat_pop[i][k][len_job[i]] < compare_fitness1 or Mat_pop[i][k][len_job[i]+1] < compare_fitness2:
-                            b_non_dominated = False
-                            break
-            if b_non_dominated == True:
-                if Mat_pop[i][j] not in non_dominated_pop[i]:
-                    non_dominated_pop[i].append(Mat_pop[i][j])
-
-    return Mat_pop, non_dominated_pop
-
-
-
 
 def single_fitness(num_machine, num_factory, GGA_popsize, Mat_pop, factory_job_set):
     s = [0 for i in range(GGA_popsize)]
@@ -66,15 +31,50 @@ def single_fitness(num_machine, num_factory, GGA_popsize, Mat_pop, factory_job_s
         for j in range(GGA_popsize):
             for k in range(GGA_popsize):
                 if j != k:
-                    sigma[j][k] = np.sqrt((Mat_pop[i][j][len_job[i]] - Mat_pop[i][k][len_job[i]])^2+ \
-                                          (Mat_pop[i][j][len_job[i]+1] - Mat_pop[i][k][len_job[i]+1]) ^ 2)
+                    sigma[j][k] = np.sqrt((Mat_pop[i][j][len_job[i]] - Mat_pop[i][k][len_job[i]])*(Mat_pop[i][j][len_job[i]] - Mat_pop[i][k][len_job[i]])+ \
+                                          (Mat_pop[i][j][len_job[i]+1] - Mat_pop[i][k][len_job[i]+1]) * (Mat_pop[i][j][len_job[i]+1] - Mat_pop[i][k][len_job[i]+1]))
             sigma[j] = np.sort(sigma[j])
             kk = int(np.sqrt(GGA_popsize))
             for k in range(kk):
                 sum1[j] = sum1[j] + sigma[j][k]
             d[j] = 1/(sum1[j] + 2)
-            Mat_pop[i][j][len_job[i]+2] = r[j] + d[j]
+            Mat_pop[i][j][-1] = r[j] + d[j]
     return Mat_pop
+
+def Multi_initial_GGA(num_machine, num_factory, factory_job_set, test_data, GGA_popsize):
+    #每个工厂的工件数
+    len_job = [len(factory_job_set[i]) for i in range(num_factory)]
+    #每个工厂的初始数据
+    Mat_pop =[[[0 for i in range(len_job[k] + 3) ]for j in range(GGA_popsize)] for k in range(num_factory)]
+    non_dominated_pop = [[] for k in range(num_factory)]
+    for i in range(num_factory):
+        for j in range(GGA_popsize):
+            sort = random.sample(factory_job_set[i], len_job[i])
+            for k in range(len_job[i] + 1):
+                if k == len_job[i]:
+                    Mat_pop[i][j][k], Mat_pop[i][j][k+1]= TCE(len_job[i], num_machine, sort, test_data,v)
+                else:
+                    Mat_pop[i][j][k] = sort[k]
+        for j in range(GGA_popsize):
+            compare_fitness1 = Mat_pop[i][j][len_job[i]]
+            compare_fitness2 = Mat_pop[i][j][len_job[i]+1]
+            b_non_dominated = True
+            for k in range(GGA_popsize):
+                if j != k:
+                    if Mat_pop[i][k][len_job[i]] <= compare_fitness1 and Mat_pop[i][k][len_job[i]+1] <= compare_fitness2:
+                        if Mat_pop[i][k][len_job[i]] < compare_fitness1 or Mat_pop[i][k][len_job[i]+1] < compare_fitness2:
+                            b_non_dominated = False
+                            break
+            if b_non_dominated == True:
+                if Mat_pop[i][j] not in non_dominated_pop[i]:
+                    non_dominated_pop[i].append(Mat_pop[i][j])
+    Mat_pop = single_fitness(num_machine, num_factory, GGA_popsize, Mat_pop, factory_job_set)
+    return Mat_pop, non_dominated_pop
+
+
+
+
+
 
 def select(num_machine, num_factory, GGA_popsize, Mat_pop, factory_job_set):
     len_job = [len(factory_job_set[i]) for i in range(num_factory)]
@@ -208,3 +208,24 @@ def GGA_main(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize):
     return non_dominated_pop
 
 #dedd = GGA_main(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize)
+
+def G_All_factory_dominated(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize):
+    #根据每个工厂的帕累托解确定总工厂的解
+    non_dominated_pop = GGA_main(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize)
+    temp_all_f_dominated = []
+    result = []
+    temp_set = list(itertools.product(non_dominated_pop[0],non_dominated_pop[1]))#lambda x: list(x) for x in non_dominated_pop[0])
+    for individual in temp_set:
+        individual = sorted(individual,key=lambda x:x[-2])
+        parteo_solution = [0 for i in range(len(individual[-1]))]
+        sum_green_fitness = 0
+        for indi_green in individual:
+            sum_green_fitness += indi_green[-1]
+        for i in range(len(individual[-1])):
+            parteo_solution[i] = individual[-1][i]
+        parteo_solution[-1] = sum_green_fitness
+        temp_all_f_dominated.append(parteo_solution)
+    result = select_all_f_non_dominated_pop(temp_all_f_dominated)
+    return result
+
+GGA = G_All_factory_dominated(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize)
