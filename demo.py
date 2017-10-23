@@ -1,5 +1,5 @@
 import numpy as np
-
+import random
 
 def getPositon():
     #a = np.mat([[2, 5, 7, 8, 9, 9], [6, 7, 5, 4, 6, 4], [6, 7, 5, 4, 6, 4]])
@@ -27,4 +27,6 @@ from itertools import combinations
 import itertools
 
 print(list(itertools.product(kk[0],kk[1])))
+a = random.randint(0,1)
+print(a)
 

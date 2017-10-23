@@ -193,7 +193,7 @@ def update_non_dominated(non_dominated_pop, temp_non_dominated,factory_job_set):
     return non_dominated_pop
 
 def Japan_Multi_object(pop_gen):
-    factory_job_set = NEH2(num_job, num_machine, test_data, num_factory)
+    factory_job_set = NEH2(num_job, num_machine, test_data, num_factory,v)
     global len_job
     len_job = [len(factory_job_set[i]) for i in range(num_factory)]
     Mat_pop, non_dominated_pop = Multi_initial_Japan(num_machine, num_factory, factory_job_set, test_data)

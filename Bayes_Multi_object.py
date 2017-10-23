@@ -354,8 +354,8 @@ def block_based(block,  Mat_pop, factory_job_set, len_job, update_popsize):
     return block_Mat_pop
 
 def Green_Bayes_net(pop_gen, ls_frequency, update_popsize):
-    global len_job
-    factory_job_set = NEH2(num_job, num_machine, test_data, num_factory)
+    global len_job, v
+    factory_job_set = NEH2(num_job, num_machine, test_data, num_factory,v)
     len_job = [len(factory_job_set[i]) for i in range(num_factory)]
     Mat_pop,  non_dominated_pop= green_initial_Bayes(num_machine, num_factory, factory_job_set, test_data, len_job,update_popsize)
     temp_list = []
