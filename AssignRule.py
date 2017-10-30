@@ -3,17 +3,31 @@ import LoadData as ld
 import numpy as np
 import random
 from random import choice
+#from Compare_result import *
 
+# num_job = int(input('请输入工件总数： '))
+# num_machine = int(input('请输入单工厂机器总数： '))
+# num_factory = int(input('请输入工厂总数： '))
+# update_popsize = int(input('请输入种群规模： '))
+# GGA_popsize = int(input('请输入GGA种群规模： '))
+# local_search_size = int(input('请输入局部搜索规模：  '))
+# ls_frequency = int(input('请输入局部搜索次数： '))
+# pop_gen = int(input('请输入进化代数： '))
+# Elite_prob = float(input('请输入更新概率矩阵的精英个体比例： '))
+# block_number = int(input('请输入块结构个数： '))
+# test_data = ld.LoadData(num_job, num_machine)
 
-num_job = int(input('请输入工件总数： '))
-num_machine = int(input('请输入单工厂机器总数： '))
-num_factory = int(input('请输入工厂总数： '))
-update_popsize = int(input('请输入种群规模： '))
-GGA_popsize = int(input('请输入GGA种群规模： '))
-local_search_size = int(input('请输入局部搜索规模：  '))
-ls_frequency = int(input('请输入局部搜索次数： '))
-pop_gen = int(input('请输入进化代数： '))
-test_data = ld.LoadData(num_job, num_machine)
+# num_job = int(input('请输入工件总数： '))
+# num_machine = int(input('请输入单工厂机器总数： '))
+# num_factory = 2
+# update_popsize = 100
+# GGA_popsize = 100
+# local_search_size = 100
+# ls_frequency = 4
+# pop_gen = 700
+# Elite_prob = 0.2
+# block_number = 3
+# test_data = ld.LoadData(num_job, num_machine)
 
 def Green_Calcfitness(n, m, sort, test_data, v):
     c_time1 = np.zeros([n, m])
@@ -112,16 +126,19 @@ def NEH2(num_job, num_machine, test_data, num_factory,v):
 
 
 def Bayes_update(Mat_pop, factory_job_set, num_factory, len_job, update_popsize):
-    prob_mat_first = [[0.0 for i in range(len_job[k])] for k in range(num_factory)]
+    prob_mat_first = [[1/len_job[k] for i in range(len_job[k])] for k in range(num_factory)]
     #返回每个工厂相邻两个工件的所有情况的概率分布
     for i in range(num_factory):
         #确定数据中第一个工件的出现概率
         index = 0
-        demo = [ii[0] for ii in Mat_pop[i][0:update_popsize]]
+        demo = [ii[0] for ii in Mat_pop[i][0:int(update_popsize*0.2)]]
         for job in factory_job_set[i]:
-            prob_mat_first[i][index] = demo.count(job) / update_popsize
+            prob_mat_first[i][index] += demo.count(job) / int(update_popsize*0.2)
             index += 1
         #每个工厂内分别有对应的（job_len - 1）个关系数组
+        zongshu = sum(prob_mat_first[i])
+        for j in range(len_job[i]):
+            prob_mat_first[i][j] = prob_mat_first[i][j]/zongshu  #归一化
     return prob_mat_first
 
 def Roulette_prob(prob_mat, len_job):

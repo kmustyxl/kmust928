@@ -19,10 +19,11 @@ def getPositon():
 
 def Multi_3d_test():
     pass
-I = [1,2,3]
-J = [4,5,6,'A']
+I = set([1,2,3,4])
+J = set([4,5,6,'A'])
 K = [10,11]
 kk = [[1,2,3],[4,5,6,'A'],[10,11]]
+print(I&J)
 from itertools import combinations
 import itertools
 
@@ -30,3 +31,14 @@ print(list(itertools.product(kk[0],kk[1])))
 a = random.randint(0,1)
 print(a)
 
+
+a = [[1,2,3,4,5,89,997] ,[1,2,3,4,5,79,1997]]
+
+b=[1,2,3,4,5]
+f1max = max(a,key=lambda x:x[-2])
+print(f1max)
+print(b[0:-1])
+for i in range(1,5)[::-1]:
+    print(i)
+I = [1,2,3,4]
+print(random.sample(I,4))

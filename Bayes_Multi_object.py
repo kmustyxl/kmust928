@@ -10,15 +10,6 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import time
 import itertools
-def speed_Matrix():
-    V = [1, 1.1, 1.2, 1.3, 1.4]
-    v = np.zeros((num_job, num_machine))
-    for i in range(num_machine):
-        for j in range(num_job):
-            temp = choice(V)
-            v[j][i] = temp
-    return v
-v = speed_Matrix()
 def Green_Calcfitness(n, m, sort, test_data, v):
     c_time1 = np.zeros([n, m])
     c_time1[0][0] = test_data[sort[0]][0] / v[0][0]
@@ -49,11 +40,11 @@ def TCE(n, m, sort, test_data,v):
     return C_time, Energy_consumption
 
 
-def green_initial_Bayes(num_machine, num_factory, factory_job_set, test_data, len_job, update_popsize):
+def green_initial_Bayes(num_machine, num_factory, factory_job_set, test_data, len_job, update_popsize,v):
     #每个工厂的工件数
    # len_job = [len(factory_job_set[i]) for i in range(num_factory)]
     #每个工厂的初始数据
-    Mat_pop =[[[0 for i in range(len_job[k] + 2) ]for j in range(update_popsize)] for k in range(num_factory)] #最后两个元素分别是经济指标和绿色指标
+    Mat_pop =[[[0 for i in range(len_job[k] + 3) ]for j in range(update_popsize)] for k in range(num_factory)] #最后两个元素分别是经济指标和绿色指标
     non_dominated_pop = [[] for k in range(num_factory)]
     for i in range(num_factory):
         for j in range(update_popsize):
@@ -63,7 +54,17 @@ def green_initial_Bayes(num_machine, num_factory, factory_job_set, test_data, le
                     Mat_pop[i][j][k], Mat_pop[i][j][k+1]= TCE(len_job[i], num_machine, sort, test_data,v)
                 else:
                     Mat_pop[i][j][k] = sort[k]
-        Mat_pop[i] = sorted(Mat_pop[i], key= lambda x:x[-2]+x[-1])
+        fitness1_max = max(Mat_pop[i],key=lambda x:x[len_job[i]])
+        fitness1_min = min(Mat_pop[i],key=lambda x:x[len_job[i]])
+        fitness2_max = max(Mat_pop[i],key=lambda x:x[len_job[i]+1])
+        fitness2_min = min(Mat_pop[i],key=lambda x:x[len_job[i]+1])
+        normalized_f1 = int(fitness1_max[len_job[i]] - fitness1_min[len_job[i]])+1
+        normalized_f2 = int(fitness2_max[len_job[i]+1] - fitness2_min[len_job[i]+1])+1
+        for j in range(update_popsize):
+            Mat_pop[i][j][len_job[i]+2] = float(Mat_pop[i][j][len_job[i]]-fitness1_min[len_job[i]])/normalized_f1+\
+                                          float(Mat_pop[i][j][len_job[i]+1]-fitness2_min[len_job[i]+1])/normalized_f2
+
+        Mat_pop[i] = sorted(Mat_pop[i], key= lambda x:x[-1])
         for j in range(update_popsize):
             compare_fitness1 = Mat_pop[i][j][len_job[i]]
             compare_fitness2 = Mat_pop[i][j][len_job[i]+1]
@@ -75,8 +76,8 @@ def green_initial_Bayes(num_machine, num_factory, factory_job_set, test_data, le
                             b_non_dominated = False
                             break
             if b_non_dominated == True:
-                if Mat_pop[i][j] not in non_dominated_pop[i]:
-                    non_dominated_pop[i].append(Mat_pop[i][j])
+                if Mat_pop[i][j][0:len_job[i]+2] not in non_dominated_pop[i]:
+                    non_dominated_pop[i].append(Mat_pop[i][j][0:len_job[i]+2])
 
     return Mat_pop, non_dominated_pop
 
@@ -113,16 +114,16 @@ def select_all_f_non_dominated_pop(temp_all_f_dominated):
                         b_non_dominated = False
                         break
         if b_non_dominated == True:
-            if temp_all_f_dominated[i][:] not in temp_non_dominated_pop:
+            if temp_all_f_dominated[i] not in temp_non_dominated_pop:
                 temp_non_dominated_pop.append(temp_all_f_dominated[i])
     return temp_non_dominated_pop
 
 
-def Green_New_pop(prob_mat_first, num_factory, factory_job_set, Mat_pop, len_job):
+def Green_New_pop(prob_mat_first, num_factory, factory_job_set, Mat_pop, len_job,v,update_popsize,local_search_size,num_machine, test_data):
     # 每个工厂每次更新20个个体
-    newpop = [[[-1 for i in range(len_job[k] + 2)] for j in range(local_search_size)] for k in range(num_factory)]
+    newpop = [[[-1 for i in range(len_job[k] + 3)] for j in range(local_search_size)] for k in range(num_factory)]
     # 三维数组--第一维：工厂数；第二维：每个工厂的所有相邻关系数组；第三维：与上一个工件的关系
-    prob_mat = [[[0.0 for i in range(len_job[k])]
+    prob_mat = [[[1/len_job[k] for i in range(len_job[k])]
                  for l in range(len_job[k] - 1)] for k in range(num_factory)]
     for i in range(num_factory):
         for num in range(local_search_size):
@@ -136,7 +137,7 @@ def Green_New_pop(prob_mat_first, num_factory, factory_job_set, Mat_pop, len_job
             newpop[i][num][0] = factory_job_set[i][j]
             for k in range(1, len_job[i]):
                 temp_job = []
-                for ii in Mat_pop[i]:
+                for ii in Mat_pop[i][0:int(update_popsize*0.2)]:
                     if ii[k] in newpop[i][num]:
                         continue
                     elif ii[k - 1] == newpop[i][num][k - 1]:
@@ -150,23 +151,40 @@ def Green_New_pop(prob_mat_first, num_factory, factory_job_set, Mat_pop, len_job
                             key = False
                     continue
                 for m in range(len_job[i]):
-                    prob_mat[i][k - 1][m] = temp_job.count(factory_job_set[i][m]) / len(temp_job)
-                r = random.random()
-                dichotomy = Roulette_prob(prob_mat[i][k - 1], len_job[i])
-                begin = 0
-                end = len_job[i] - 1
-                j = Roulette_dichotomy(r, dichotomy, begin, end)
-                newpop[i][num][k] = factory_job_set[i][j]
-            newpop[i][num][-2], newpop[i][num][-1] = TCE(len_job[i], num_machine, newpop[i][num], test_data, v)
-
+                    prob_mat[i][k - 1][m] += temp_job.count(factory_job_set[i][m]) / len(temp_job)
+                zongshu = sum(prob_mat[i][k - 1])
+                for m in range(len_job[i]):
+                    prob_mat[i][k - 1][m] = prob_mat[i][k - 1][m]/zongshu
+                B_index = True
+                while B_index:
+                    r = random.random()
+                    dichotomy = Roulette_prob(prob_mat[i][k - 1], len_job[i])
+                    begin = 0
+                    end = len_job[i] - 1
+                    j = Roulette_dichotomy(r, dichotomy, begin, end)
+                    if factory_job_set[i][j] in newpop[i][num]:
+                        B_index = True
+                    else:
+                        newpop[i][num][k] = factory_job_set[i][j]
+                        B_index = False
+            newpop[i][num][-3], newpop[i][num][-2] = TCE(len_job[i], num_machine, newpop[i][num], test_data, v)
+        fitness1_max = max(newpop[i],key=lambda x:x[len_job[i]])
+        fitness1_min = min(newpop[i],key=lambda x:x[len_job[i]])
+        fitness2_max = max(newpop[i],key=lambda x:x[len_job[i]+1])
+        fitness2_min = min(newpop[i],key=lambda x:x[len_job[i]+1])
+        normalized_f1 = int(fitness1_max[len_job[i]] - fitness1_min[len_job[i]])+1
+        normalized_f2 = int(fitness2_max[len_job[i]+1] - fitness2_min[len_job[i]+1])+1
+        for j in range(local_search_size):
+            newpop[i][j][-1] = float(newpop[i][j][len_job[i]]-fitness1_min[len_job[i]])/normalized_f1+\
+                                          float(newpop[i][j][len_job[i]+1]-fitness2_min[len_job[i]+1])/normalized_f2
         newpop[i] = sorted(newpop[i], key= lambda x:x[-1])
-    return newpop[:][0:local_search_size]
+    return newpop
 
 #---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-def swap_search(newpop, ls_frequency, len_job, num_factory,local_search_size):
-    ls_pop = [[[[-1 for i in range(len_job[k] + 2)] for j in range(ls_frequency)] for l in range(local_search_size)]for k in range(num_factory)]
-    select_ls_pop = [[[-1 for i in range(len_job[k] + 2)]  for l in range(local_search_size)]for k in range(num_factory)]
+def swap_search(newpop, ls_frequency, len_job, num_factory,local_search_size,v):
+    ls_pop = [[[[-1 for i in range(len_job[k] + 3)] for j in range(ls_frequency)] for l in range(local_search_size)]for k in range(num_factory)]
+    select_ls_pop = [[[-1 for i in range(len_job[k] + 3)]  for l in range(local_search_size)]for k in range(num_factory)]
     for i in range(num_factory):
         for l in range(local_search_size):
             ls_pop[i][l][0][:] = newpop[i][l][:]        #保优操作
@@ -182,14 +200,32 @@ def swap_search(newpop, ls_frequency, len_job, num_factory,local_search_size):
                 ls_pop[i][l][j][:len_job[i]] = newpop[i][l][:len_job[i]]
                 newpop[i][l][:len_job[i]] = ls_pop[i][l][0][:len_job[i]]
                 ls_pop[i][l][j][len_job[i]],ls_pop[i][l][j][len_job[i] + 1] = TCE(len_job[i], num_machine, ls_pop[i][l][j][0:len_job[i]], test_data, v)
-            select_ls_pop[i][l] = sorted(ls_pop[i][l],key= lambda x:x[len_job[i]+1])[0]
-        select_ls_pop[i] = sorted(select_ls_pop[i],key= lambda x:x[len_job[i]+1])
+            fitness1_max = max(ls_pop[i][l], key=lambda x: x[len_job[i]])
+            fitness1_min = min(ls_pop[i][l], key=lambda x: x[len_job[i]])
+            fitness2_max = max(ls_pop[i][l], key=lambda x: x[len_job[i] + 1])
+            fitness2_min = min(ls_pop[i][l], key=lambda x: x[len_job[i] + 1])
+            normalized_f1 = int(fitness1_max[len_job[i]] - fitness1_min[len_job[i]])+1
+            normalized_f2 = int(fitness2_max[len_job[i] + 1] - fitness2_min[len_job[i] + 1])+1
+            for j in range(ls_frequency):
+                ls_pop[i][l][j][-1] =  float(ls_pop[i][l][j][len_job[i]]-fitness1_min[len_job[i]])/normalized_f1+\
+                                          float(ls_pop[i][l][j][len_job[i]+1]-fitness2_min[len_job[i]+1])/normalized_f2
+            select_ls_pop[i][l] = sorted(ls_pop[i][l],key= lambda x:x[-1])[0]
+        fitness1_max = max(select_ls_pop[i], key=lambda x: x[len_job[i]])
+        fitness1_min = min(select_ls_pop[i], key=lambda x: x[len_job[i]])
+        fitness2_max = max(select_ls_pop[i], key=lambda x: x[len_job[i] + 1])
+        fitness2_min = min(select_ls_pop[i], key=lambda x: x[len_job[i] + 1])
+        normalized_f1 = int(fitness1_max[len_job[i]] - fitness1_min[len_job[i]])+1
+        normalized_f2 = int(fitness2_max[len_job[i] + 1] - fitness2_min[len_job[i] + 1])+1
+        for l in range(local_search_size):
+            select_ls_pop[i][l][-1] = float(select_ls_pop[i][l][len_job[i]] - fitness1_min[len_job[i]]) / normalized_f1 + \
+                                 float(select_ls_pop[i][l][len_job[i] + 1] - fitness2_min[len_job[i] + 1]) / normalized_f2
+        select_ls_pop[i] = sorted(select_ls_pop[i],key= lambda x:x[-1])
     return select_ls_pop
 
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def insert_search(newpop, ls_frequency, len_job, num_factory, local_search_size):
-    ls_pop = [[[[-1 for i in range(len_job[k] + 2)] for j in range(ls_frequency)] for l in range(local_search_size)]for k in range(num_factory)]
-    select_ls_pop = [[[-1 for i in range(len_job[k] + 2)]  for l in range(local_search_size)]for k in range(num_factory)]
+def insert_search(newpop, ls_frequency, len_job, num_factory, local_search_size,v, num_machine, test_data):
+    ls_pop = [[[[-1 for i in range(len_job[k] + 3)] for j in range(ls_frequency)] for l in range(local_search_size)]for k in range(num_factory)]
+    select_ls_pop = [[[-1 for i in range(len_job[k] + 3)]  for l in range(local_search_size)]for k in range(num_factory)]
     for i in range(num_factory):
         temp_individual = [-1 for i in range(len_job[i])]
         for l in range(local_search_size):
@@ -208,11 +244,29 @@ def insert_search(newpop, ls_frequency, len_job, num_factory, local_search_size)
                     temp_individual[k] = newpop[i][l][k-1]
                 ls_pop[i][l][j][0:len_job[i]] = temp_individual[:]
                 ls_pop[i][l][j][len_job[i]], ls_pop[i][l][j][len_job[i] + 1] = TCE(len_job[i], num_machine, ls_pop[i][l][j][0:len_job[i]], test_data, v)
-            select_ls_pop[i][l] = sorted(ls_pop[i][l], key=lambda x: x[len_job[i]+1])[0]
-        select_ls_pop[i] = sorted(select_ls_pop[i], key=lambda x: x[len_job[i]+1])
+            fitness1_max = max(ls_pop[i][l], key=lambda x: x[len_job[i]])
+            fitness1_min = min(ls_pop[i][l], key=lambda x: x[len_job[i]])
+            fitness2_max = max(ls_pop[i][l], key=lambda x: x[len_job[i] + 1])
+            fitness2_min = min(ls_pop[i][l], key=lambda x: x[len_job[i] + 1])
+            normalized_f1 = int(fitness1_max[len_job[i]] - fitness1_min[len_job[i]])+1
+            normalized_f2 = int(fitness2_max[len_job[i] + 1] - fitness2_min[len_job[i] + 1])+1
+            for j in range(ls_frequency):
+                ls_pop[i][l][j][-1] = float(ls_pop[i][l][j][len_job[i]] - fitness1_min[len_job[i]]) / normalized_f1 + \
+                                     float(ls_pop[i][l][j][len_job[i] + 1] - fitness2_min[len_job[i] + 1]) / normalized_f2
+            select_ls_pop[i][l] = sorted(ls_pop[i][l], key=lambda x: x[-1])[0]
+        fitness1_max = max(select_ls_pop[i], key=lambda x: x[len_job[i]])
+        fitness1_min = min(select_ls_pop[i], key=lambda x: x[len_job[i]])
+        fitness2_max = max(select_ls_pop[i], key=lambda x: x[len_job[i] + 1])
+        fitness2_min = min(select_ls_pop[i], key=lambda x: x[len_job[i] + 1])
+        normalized_f1 = int(fitness1_max[len_job[i]] - fitness1_min[len_job[i]])+1
+        normalized_f2 = int(fitness2_max[len_job[i] + 1] - fitness2_min[len_job[i] + 1])+1
+        for l in range(local_search_size):
+            select_ls_pop[i][l][-1] = float(select_ls_pop[i][l][len_job[i]] - fitness1_min[len_job[i]]) / normalized_f1 + \
+                                      float(select_ls_pop[i][l][len_job[i] + 1] - fitness2_min[len_job[i] + 1]) / normalized_f2
+        select_ls_pop[i] = sorted(select_ls_pop[i], key=lambda x: x[-1])
     return select_ls_pop
 #------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def interchange(newpop, ls_frequency, len_job, num_factory, local_search_size):
+def interchange(newpop, ls_frequency, len_job, num_factory, local_search_size,v):
     ls_pop = [[[[-1 for i in range(len_job[k] + 2)] for j in range(ls_frequency)] for l in range(local_search_size)]for k in range(num_factory)]
     select_ls_pop = [[[-1 for i in range(len_job[k] + 2)]  for l in range(local_search_size)]for k in range(num_factory)]
     for i in range(num_factory):
@@ -248,96 +302,155 @@ def interchange(newpop, ls_frequency, len_job, num_factory, local_search_size):
             select_ls_pop[i][l] = sorted(ls_pop[i][l], key=lambda x: x[len_job[i]+1])[0]
         select_ls_pop[i] = sorted(select_ls_pop[i], key=lambda x: x[len_job[i]+1])
     return select_ls_pop
-#------------------------------------------------------------------------------------------------------------------------------------------------------------------
-def block_3dim(Mat_pop, len_job, update_popsize):
+
+def interchange_insert(newpop, ls_frequency, len_job, num_factory, local_search_size,v,num_machine,test_data):
+    ls_pop = [[[-1 for i in range(len_job[k] + 3)]  for l in range(local_search_size)] for k in range(num_factory)]
+   # select_ls_pop = [[[-1 for i in range(len_job[k] + 3)] for l in range(local_search_size)] for k in
+   #                  range(num_factory)]
+    select_ls_individual = [[-1 for i in range(len_job[k] + 3)] for k in range(num_factory)]
+    for i in range(num_factory):
+        temp_individual = [-1 for i in range(len_job[i])]
+        for l in range(local_search_size):
+            ls_pop[i][l][:] = newpop[i][l][:]
+            temp = random.randint(0, len_job[i] - 1)
+            if temp == 0:
+                temp_individual[:] = newpop[i][l][:]
+                temp_job = temp_individual[temp]
+                temp_individual[temp] = temp_individual[temp + 1]
+                temp_individual[temp + 1] = temp_job
+            elif temp == len_job[i] - 1:
+                temp_individual[:] = newpop[i][l][:]
+                temp_job = temp_individual[temp]
+                temp_individual[temp] = temp_individual[temp - 1]
+                temp_individual[temp - 1] = temp_job
+            else:
+                r = random.random()
+                if r > 0.5:
+                    temp_individual[:] = newpop[i][l][:]
+                    temp_job = temp_individual[temp]
+                    temp_individual[temp] = temp_individual[temp + 1]
+                    temp_individual[temp + 1] = temp_job
+                else:
+                    temp_individual[:] = newpop[i][l][:]
+                    temp_job = temp_individual[temp]
+                    temp_individual[temp] = temp_individual[temp - 1]
+                    temp_individual[temp - 1] = temp_job
+            #select_ls_individual[i][:] = ls_pop[i][l][:]
+            ls_temp_individual = [-1 for i in range(len_job[i] + 3)]
+            #进行10次局部搜索
+            for j in range(ls_frequency):
+                temp1 = random.randint(1, len_job[i] - 2)
+                while True:
+                    temp2 = random.randint(1, len_job[i] - 2)
+                    if abs(temp1 - temp2) >= 2:
+                        break
+                rand_pos1 = max(temp1, temp2)
+                rand_pos2 = min(temp1, temp2)
+                ls_temp_individual[:] = temp_individual[:]
+                ls_temp_individual[rand_pos2] = temp_individual[rand_pos1]
+                for k in range(rand_pos2 + 1, rand_pos1 + 1):
+                    ls_temp_individual[k] = temp_individual[k - 1]
+                ls_temp_individual[len_job[i]],ls_temp_individual[len_job[i] + 1] = TCE(len_job[i], num_machine, ls_temp_individual[0:len_job[i]],
+                                                                                       test_data, v)
+                if ls_temp_individual[len_job[i]]<=ls_pop[i][l][len_job[i]] and  ls_temp_individual[len_job[i]+1]<=ls_pop[i][l][len_job[i]+1]:
+                    if ls_temp_individual[len_job[i]]<ls_pop[i][l][len_job[i]] or ls_temp_individual[len_job[i]+1]<ls_pop[i][l][len_job[i]+1]:
+                        ls_pop[i][l][:] = ls_temp_individual[:]
+                else:
+                    continue
+    return ls_pop
+
+
+
+
+            #------------------------------------------------------------------------------------------------------------------------------------------------------------------
+def block_3dim(Mat_pop, len_job, update_popsize,block_number,Elite_prob,num_factory, num_job):
     block = [[] for i in range(num_factory)]
     select_block = [[] for i in range(num_factory)]
     select_location = [[] for i in range(num_factory)]
     for i in range(num_factory):
         block_Matrix = np.zeros((len_job[i] - 2, num_job, num_job, num_job)) #带位置信息的三维block
-        for k in range(int(update_popsize/5)):
+        for k in range(int(update_popsize*Elite_prob)):
             for j in range(0,len_job[i] - 2):
                 block_Matrix[j, Mat_pop[i][k][j],Mat_pop[i][k][j+1],Mat_pop[i][k][j+2]] += 1
         location, height, raw, column = block_Matrix.shape
         key = True
-        while key:
+        for k in range(block_number):
             _positon = np.argmax(block_Matrix)
             loc = int(_positon /height/ raw / column)
             h = int((_positon-(height*raw*column)*loc) / raw / column)
             m, n = divmod((_positon-(height*raw*column)*loc) - (raw * column) * h, column)
-            if block_Matrix[loc,h, int(m), int(n)] >= int(update_popsize/5*0.3):
-                block[i].append([loc, h, int(m), int(n)])
+            block[i].append([loc, h, int(m), int(n)])
                 #block[i].append(block_Matrix[loc, h, int(m), int(n)])
-                block_Matrix[loc, h, int(m), int(n)] = 0
-            else:
-                key = False
+            block_Matrix[loc, h, int(m), int(n)] = 0
     #---------------------------------------------------------------------------------------------
-
     for i in range(num_factory):    #组合概率高的block 剔除存在冲突的block
+        #------------------------------------------------------------------------
         select_job = set()
-        if len(block[i]) == 0:
-            continue
-        j = 0
-        if j == 0:
-            for k in range(1,4):
-                select_job.add(block[i][0][k])
-            select_block[i].append(block[i][0])     #添加第一个块结构
-            select_location[i].append(block[i][0][0])       #记录第一个块结构的位置
-        j += 1
         len_block = len(block[i])
-        while j<len_block:
-            #print(block[i][j])
-            temp_job = set()
-            for k in range(1, 4):
-                temp_job.add(block[i][j][k])
-            if block[i][j][0] in select_location[i]:
-                j += 1
-                continue
-            elif len(select_job & temp_job) == 0:
-                select_block[i].append(block[i][j])
-                select_location[i].append(block[i][j][0])
-                j += 1
-                continue
-            else:
-                j += 1
-                continue
-            if block[i][j][1] == select_block[i][j-1][-2] and block[i][j][2] == select_block[i][j-1][-1]:
-                if block[i][j][-1] in select_block[i][j-1]:
-                    j += 1
+        if len_block == 0:
+            continue
+        for k in range(1,4):
+            select_job.add(block[i][0][k])
+        select_block[i].append(block[i][0])     #添加第一个块结构
+        select_location[i].append(block[i][0][0])       #记录第一个块结构的位置
+        for j in range(len_block):
+            for k in range(j,len_block):
+                if block[i][k][0] == block[i][j][0]:
                     continue
-                else:
-                    select_block[i].append(block[i][j])
-                    select_location[i].append(block[i][j][0])
-                    j += 1
-                    continue
-            elif block[i][j][1] == select_block[i][j-1][-1]:
-                if block[i][j][2] or block[i][j][3] in  select_block[i][j-1]:
-                    j += 1
-                    continue
-                else:
-                    select_block[i].append(block[i][j])
-                    select_location[i].append(block[i][j][0])
-            j += 1
+                if abs(block[i][k][0] - block[i][j][0])==1:
+                    if block[i][k][1] == block[i][j][2] and block[i][k][2] == block[i][j][2]:
+                        if block[i][k][3] not in select_job:
+                            select_job.add(block[i][k][3])
+                            select_block[i].append(block[i][k])
+                            select_location.append(block[i][k][0])
+                        if block[i][j][1] == block[i][k][2] and block[i][j][2] == block[i][k][2]:
+                            if block[i][j][3] not in select_job:
+                                select_job.add(block[i][j][3])
+                                select_block[i].append(block[i][j])
+                                select_location.append(block[i][j][0])
+                if abs(block[i][k][0] - block[i][j][0]) == 2:
+                    if block[i][k][1] == block[i][j][3]:
+                        if block[i][k][2] not in select_job and block[i][k][3] not in select_job:
+                            select_job.add(block[i][k][2])
+                            select_job.add(block[i][k][3])
+                            select_block[i].append(block[i][k])
+                            select_location.append(block[i][k][0])
+                        if block[i][j][2] not in select_job and block[i][j][3] not in select_job:
+                            select_job.add(block[i][j][2])
+                            select_job.add(block[i][j][3])
+                            select_block[i].append(block[i][j])
+                            select_location.append(block[i][j][0])
+                if abs(block[i][k][0] - block[i][j][0]) > 2:
+                    if (block[i][k][1] not in select_job and block[i][k][2] not in select_job) and block[i][k][3] not in select_job:
+                        select_job.add(block[i][k][1])
+                        select_job.add(block[i][k][2])
+                        select_job.add(block[i][k][3])
+                        select_block[i].append(block[i][k])
+                        select_location.append(block[i][k][0])
+
+
     return select_block
 
-def block_based(block,  Mat_pop, factory_job_set, len_job, update_popsize):
+def block_based(block,  Mat_pop, factory_job_set, len_job, update_popsize,v,num_factory, num_machine,test_data):
     #根据精英集合构建的快结构生成新种群
     factory_job_set_other = [[] for i in range(num_factory)]
     len_job_other = [0 for i in range(num_factory)]
-    block_Mat_pop = [[[-1 for i in range(len_job[k] + 2)] for j in range(update_popsize)] for k in range(num_factory)]
+    block_Mat_pop = [[[-1 for i in range(len_job[k] + 3)] for j in range(update_popsize)] for k in range(num_factory)]
     for i in range(num_factory):
+        for j in range(10):
+            block_Mat_pop[i][j][:] = Mat_pop[i][j][:]
         for j in range(len(block[i])):
             location = block[i][j][0]
             for k in range(1,len(block[i][j])):
-                for l in range(update_popsize):
+                for l in range(10,update_popsize):
                     block_Mat_pop[i][l][location] = block[i][j][k]
                 location += 1
     for i in range(num_factory):
         for j in range(len_job[i]):
-            if factory_job_set[i][j] not in block_Mat_pop[i][0]:
+            if factory_job_set[i][j] not in block_Mat_pop[i][10]:
                 factory_job_set_other[i].append(factory_job_set[i][j])
-            len_job_other[i] = len(factory_job_set_other[i])
-        for j in range(update_popsize):
+        len_job_other[i] = len(factory_job_set_other[i])
+        for j in range(10,update_popsize):
             sort = random.sample(factory_job_set_other[i], len_job_other[i])
             index = 0
             for k in range(len_job[i]):
@@ -349,73 +462,107 @@ def block_based(block,  Mat_pop, factory_job_set, len_job, update_popsize):
     for i in range(num_factory):
         for j in range(update_popsize):
             block_Mat_pop[i][j][len_job[i]], block_Mat_pop[i][j][len_job[i]+1] = TCE(len_job[i], num_machine, block_Mat_pop[i][j][0:len_job[i]],
+
                                                                                      test_data, v)
-        block_Mat_pop[i] = sorted(block_Mat_pop[i], key=lambda x: x[-1])
+        fitness1_max = max(block_Mat_pop[i],key=lambda x:x[len_job[i]])
+        fitness1_min = min(block_Mat_pop[i],key=lambda x:x[len_job[i]])
+        fitness2_max = max(block_Mat_pop[i],key=lambda x:x[len_job[i]+1])
+        fitness2_min = min(block_Mat_pop[i],key=lambda x:x[len_job[i]+1])
+        normalized_f1 = int(fitness1_max[len_job[i]] - fitness1_min[len_job[i]])+1
+        normalized_f2 = int(fitness2_max[len_job[i]+1] - fitness2_min[len_job[i]+1])+1
+        for j in range(update_popsize):
+            block_Mat_pop[i][j][len_job[i]+2] = float(block_Mat_pop[i][j][len_job[i]]-fitness1_min[len_job[i]])/normalized_f1+\
+                                          float(block_Mat_pop[i][j][len_job[i]+1]-fitness2_min[len_job[i]+1])/normalized_f2
+
+        block_Mat_pop[i] = sorted(block_Mat_pop[i], key= lambda x:x[-1])
     return block_Mat_pop
 
-def Green_Bayes_net(pop_gen, ls_frequency, update_popsize):
-    global len_job, v
+def Green_Bayes_net(pop_gen, ls_frequency, update_popsize, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data, num_factory,local_search_size):
+    test_timeup = time.clock()
     factory_job_set = NEH2(num_job, num_machine, test_data, num_factory,v)
     len_job = [len(factory_job_set[i]) for i in range(num_factory)]
-    Mat_pop,  non_dominated_pop= green_initial_Bayes(num_machine, num_factory, factory_job_set, test_data, len_job,update_popsize)
+    Mat_pop,  non_dominated_pop= green_initial_Bayes(num_machine, num_factory, factory_job_set, test_data, len_job,update_popsize,v)
     temp_list = []
-    for gen in range(pop_gen-50):
+    for gen in range(80):
         prob_mat_first = Bayes_update(Mat_pop, factory_job_set, num_factory, len_job, update_popsize)
-        newpop = Green_New_pop(prob_mat_first, num_factory, factory_job_set, Mat_pop, len_job)
+        newpop = Green_New_pop(prob_mat_first, num_factory, factory_job_set, Mat_pop, len_job,v,update_popsize,local_search_size,num_machine, test_data)
         r = random.random()
-        ls_pop = swap_search(newpop, ls_frequency, len_job, num_factory,local_search_size)
+        ls_pop = interchange_insert(newpop, ls_frequency, len_job, num_factory, local_search_size,v,num_machine,test_data)
         for i in range(num_factory):
-            k_index = -1
-            for k in range(local_search_size - 1,-1,-1):
-                k_index += 1
-                for j in range(update_popsize - 1 - k_index,-1,-1):
-                    if float(ls_pop[i][k][-2]) <= float(Mat_pop[i][j][len_job[i]]) and float(ls_pop[i][k][-1]) <= float(Mat_pop[i][j][len_job[i]+1]):
-                        if  float(ls_pop[i][k][-2]) < float(Mat_pop[i][j][len_job[i]]) or float(ls_pop[i][k][-1]) < float(Mat_pop[i][j][len_job[i]+1]):
+            for k in range(local_search_size):
+                for j in range(update_popsize)[::-1]:
+                    if float(ls_pop[i][k][len_job[i]]) <= float(Mat_pop[i][j][len_job[i]]) and float(ls_pop[i][k][len_job[i]+1]) <= float(Mat_pop[i][j][len_job[i]+1]):
+                        if  float(ls_pop[i][k][len_job[i]]) < float(Mat_pop[i][j][len_job[i]]) or float(ls_pop[i][k][len_job[i]+1]) < float(Mat_pop[i][j][len_job[i]+1]):
                             temp_list = ls_pop[i][k]
                             for l in range(len(factory_job_set[i]) + 2):
                                 Mat_pop[i][j][l] = temp_list[l]
                             temp_list = []
                             break
-            Mat_pop[i] = sorted(Mat_pop[i], key= lambda x:x[-1])
+
+            fitness1_max = max(Mat_pop[i], key=lambda x: x[len_job[i]])
+            fitness1_min = min(Mat_pop[i], key=lambda x: x[len_job[i]])
+            fitness2_max = max(Mat_pop[i], key=lambda x: x[len_job[i] + 1])
+            fitness2_min = min(Mat_pop[i], key=lambda x: x[len_job[i] + 1])
+            normalized_f1 = int(fitness1_max[len_job[i]] - fitness1_min[len_job[i]])+1
+            normalized_f2 = int(fitness2_max[len_job[i] + 1] - fitness2_min[len_job[i] + 1])+1
+            for j in range(update_popsize):
+                Mat_pop[i][j][len_job[i] + 2] = float(Mat_pop[i][j][len_job[i]] - fitness1_min[len_job[i]]) / normalized_f1 + \
+                                                float(Mat_pop[i][j][len_job[i] + 1] - fitness2_min[
+                                                    len_job[i] + 1]) / normalized_f2
+
+            Mat_pop[i] = sorted(Mat_pop[i], key=lambda x: x[-1])
         temp_non_dominated = select_non_dominated_pop(num_factory, len_job, Mat_pop)
         for i in range(num_factory):
             for j in range(len(temp_non_dominated[i])):
                 if temp_non_dominated[i][j] not in non_dominated_pop[i]:
                     non_dominated_pop[i].append(temp_non_dominated[i][j])
-        non_dominated_pop = select_non_dominated_pop(num_factory, len_job, non_dominated_pop)
-    demo = block_3dim(Mat_pop, len_job, update_popsize)
-    demo1 = block_based(demo, Mat_pop, factory_job_set, len_job, update_popsize)
-    for gen in range(50):
-        ls_pop = insert_search(demo1, ls_frequency, len_job, num_factory, local_search_size)
+    non_dominated_pop = select_non_dominated_pop(num_factory, len_job, non_dominated_pop)
+    demo = block_3dim(Mat_pop, len_job, update_popsize, block_number,Elite_prob,num_factory, num_job)
+    demo1 = block_based(demo, Mat_pop, factory_job_set, len_job, update_popsize,v,num_factory, num_machine,test_data)
+    test_time_mid = time.clock()
+    print('单独贝叶斯程序共运行：%s' % (test_time_mid-test_timeup))
+    for gen in range(pop_gen-80):
+        ls_pop = interchange_insert(demo1, ls_frequency, len_job, num_factory, local_search_size,v,num_machine,test_data)
         for i in range(num_factory):
-            k_index = -1
-            for k in range(local_search_size - 1, -1, -1):
-                k_index += 1
-                for j in range(update_popsize - 1 - k_index, -1, -1):
-                    if float(ls_pop[i][k][-2]) < float(demo1[i][j][len_job[i]]) or float(ls_pop[i][k][-1]) < float(
-                            demo1[i][j][len_job[i] + 1]):
-                        temp_list = ls_pop[i][k]
-                        for l in range(len(factory_job_set[i]) + 2):
-                            demo1[i][j][l] = temp_list[l]
-                        temp_list = []
-                        break
+            for k in range(local_search_size):
+                for j in range(update_popsize)[::-1]:
+                    if float(ls_pop[i][k][len_job[i]]) <= float(demo1[i][j][len_job[i]]) and float(ls_pop[i][k][len_job[i] + 1]) <= float(demo1[i][j][len_job[i] + 1]):
+                        if float(ls_pop[i][k][len_job[i]]) < float(demo1[i][j][len_job[i]]) or float(ls_pop[i][k][len_job[i] + 1]) < float(demo1[i][j][len_job[i] + 1]):
+                            for l in range(len(factory_job_set[i]) + 2):
+                                demo1[i][j][l] = ls_pop[i][k][l]
+                            break
+            fitness1_max = max(demo1[i], key=lambda x: x[len_job[i]])
+            fitness1_min = min(demo1[i], key=lambda x: x[len_job[i]])
+            fitness2_max = max(demo1[i], key=lambda x: x[len_job[i] + 1])
+            fitness2_min = min(demo1[i], key=lambda x: x[len_job[i] + 1])
+            normalized_f1 = int(fitness1_max[len_job[i]] - fitness1_min[len_job[i]])+1
+            normalized_f2 = int(fitness2_max[len_job[i] + 1] - fitness2_min[len_job[i] + 1])+1
+            for j in range(update_popsize):
+                demo1[i][j][len_job[i] + 2] = float(demo1[i][j][len_job[i]] - fitness1_min[len_job[i]]) / normalized_f1 + \
+                                                float(demo1[i][j][len_job[i] + 1] - fitness2_min[len_job[i] + 1]) / normalized_f2
+
             demo1[i] = sorted(demo1[i], key=lambda x: x[-1])
+
         temp_non_dominated = select_non_dominated_pop(num_factory, len_job, demo1)
         for i in range(num_factory):
             for j in range(len(temp_non_dominated[i])):
-                if temp_non_dominated[i][j] not in non_dominated_pop[i]:
-                    non_dominated_pop[i].append(temp_non_dominated[i][j])
+                if temp_non_dominated[i][j][0:len_job[i]+2] not in non_dominated_pop[i]:
+                    non_dominated_pop[i].append(temp_non_dominated[i][j][0:len_job[i]+2])
         non_dominated_pop = select_non_dominated_pop(num_factory, len_job, non_dominated_pop)
-    return non_dominated_pop
+        test_timedown = time.clock()
+        if float(test_timedown-test_timeup) >= float(test_time):
+            break
+    return non_dominated_pop, float(test_timedown-test_timeup)
 
-def B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory):
+def B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data,local_search_size):
     #根据每个工厂的帕累托解确定总工厂的解
-    non_dominated_pop = Green_Bayes_net(pop_gen, ls_frequency,update_popsize)
+    non_dominated_pop, run_time = Green_Bayes_net(pop_gen, ls_frequency, update_popsize, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data, num_factory,local_search_size)
+    print('贝叶斯程序共运行：%s' % (run_time))
     temp_all_f_dominated = []
     result = []
     temp_set = list(itertools.product(non_dominated_pop[0],non_dominated_pop[1]))#lambda x: list(x) for x in non_dominated_pop[0])
     for individual in temp_set:
-        individual = sorted(individual,key=lambda x:x[-1])
+        individual = sorted(individual,key=lambda x:x[-2])
         parteo_solution = [0 for i in range(len(individual[-1]))]
         sum_green_fitness = 0
         for indi_green in individual:
