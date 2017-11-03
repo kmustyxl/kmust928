@@ -42,3 +42,5 @@ for i in range(1,5)[::-1]:
     print(i)
 I = [1,2,3,4]
 print(random.sample(I,4))
+a = random.randint(0,2)
+print('a=%d'%a)

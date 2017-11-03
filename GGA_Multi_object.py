@@ -238,8 +238,8 @@ def generation_GGA(num_factory,GGA_popsize,GGA_factory_job_set,GGA_Mat_pop,v,num
             if GGA_Mat_pop[i][j][GGA_len_job[i]]>=GGA_newpop[i][j][GGA_len_job[i]] and GGA_Mat_pop[i][j][GGA_len_job[i]+1]>=GGA_newpop[i][j][GGA_len_job[i]+1]:
                 if GGA_Mat_pop[i][j][GGA_len_job[i]]>GGA_newpop[i][j][GGA_len_job[i]] or GGA_Mat_pop[i][j][GGA_len_job[i]+1]>GGA_newpop[i][j][GGA_len_job[i]+1]:
                     GGA_Mat_pop[i][j][:] = GGA_newpop[i][j][:]
-            if GGA_Mat_pop[i][j][GGA_len_job[i]]>GGA_newpop[i][j][GGA_len_job[i]] and GGA_Mat_pop[i][j][GGA_len_job[i]+1]<GGA_newpop[i][j][GGA_len_job[i]+1] or \
-               GGA_Mat_pop[i][j][GGA_len_job[i]] < GGA_newpop[i][j][GGA_len_job[i]] and GGA_Mat_pop[i][j][GGA_len_job[i] + 1] > GGA_newpop[i][j][GGA_len_job[i] + 1]:
+            if (GGA_Mat_pop[i][j][GGA_len_job[i]]>GGA_newpop[i][j][GGA_len_job[i]] and GGA_Mat_pop[i][j][GGA_len_job[i]+1]<GGA_newpop[i][j][GGA_len_job[i]+1]) or \
+                    (GGA_Mat_pop[i][j][GGA_len_job[i]] < GGA_newpop[i][j][GGA_len_job[i]] and GGA_Mat_pop[i][j][GGA_len_job[i] + 1] > GGA_newpop[i][j][GGA_len_job[i] + 1]):
                 b = np.random.random()
                 if b < 0.5:
                     GGA_Mat_pop[i][j][:] = GGA_newpop[i][j][:]
@@ -258,8 +258,6 @@ def GGA_main(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize, t
         if float(test_timedown - test_timeup) >= float(test_time):
             break
     return GGA_non_dominated_pop, float(test_timedown - test_timeup)
-
-#dedd = GGA_main(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize)
 
 def G_All_factory_dominated(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize, test_time,v):
     #根据每个工厂的帕累托解确定总工厂的解

@@ -3,31 +3,6 @@ import LoadData as ld
 import numpy as np
 import random
 from random import choice
-#from Compare_result import *
-
-# num_job = int(input('请输入工件总数： '))
-# num_machine = int(input('请输入单工厂机器总数： '))
-# num_factory = int(input('请输入工厂总数： '))
-# update_popsize = int(input('请输入种群规模： '))
-# GGA_popsize = int(input('请输入GGA种群规模： '))
-# local_search_size = int(input('请输入局部搜索规模：  '))
-# ls_frequency = int(input('请输入局部搜索次数： '))
-# pop_gen = int(input('请输入进化代数： '))
-# Elite_prob = float(input('请输入更新概率矩阵的精英个体比例： '))
-# block_number = int(input('请输入块结构个数： '))
-# test_data = ld.LoadData(num_job, num_machine)
-
-# num_job = int(input('请输入工件总数： '))
-# num_machine = int(input('请输入单工厂机器总数： '))
-# num_factory = 2
-# update_popsize = 100
-# GGA_popsize = 100
-# local_search_size = 100
-# ls_frequency = 4
-# pop_gen = 700
-# Elite_prob = 0.2
-# block_number = 3
-# test_data = ld.LoadData(num_job, num_machine)
 
 def Green_Calcfitness(n, m, sort, test_data, v):
     c_time1 = np.zeros([n, m])
@@ -56,7 +31,7 @@ def TCE(n, m, sort, test_data,v):
             Key_time -= test_data[sort[i]][k] / v[i][k]
         standy_time += Key_time
     Energy_consumption += standy_time * per_consumption_Standy
-    return C_time, Energy_consumption
+    return int(C_time), int(Energy_consumption)
 
 def CalcFitness(n, m, test_data):
     c_time1 = np.zeros([n, m])

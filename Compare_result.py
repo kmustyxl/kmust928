@@ -5,28 +5,67 @@ import GGA_Multi_object  as test_G
 import numpy as np
 from AssignRule import *
 import xlwt
+import xlrd
+#import xlutils.copy
 import LoadData as ld
 book = xlwt.Workbook(encoding = 'utf-8')
 sheet = book.add_sheet('data')
-num_job_list = [20,30,30,50,50,50,70,70,70,100,100]
-num_machine_list =[5,5,10,5,10,20,5,10,20,10,20]
-test_time_list = [20.0,30.0,30.0,50.0,50.0,50.0,70.0,70.0,140.0,200.0,200.0]
+num_job_list =[20,30,30]#,50,50,50,70,70,70,100,100]
+num_machine_list =[5,5,10]#,5,10,20,5,10,20,10,20]
+test_time_list =[30.0,45.0,45.0]#,75.0,75.0,75.0,105.0,105.0,105.0,150.0,150.0]
 
-sheet.write(0, 1, 'bayes1')
-sheet.write(0, 2, 'bayes2')
-sheet.write(0, 3, 'japan1')
-sheet.write(0, 4, 'japan2')
-sheet.write(0, 5, 'gga1')
-sheet.write(0, 6, 'gga2')
+sheet.write(0, 1, 'Bayes')
+sheet.write(0, 6, 'Japan')
+sheet.write(0, 11, 'GGA')
+sheet.write(1, 1, 'R_N')
+sheet.write(1, 2, 'N_N')
+sheet.write(1, 3, 'MID')
+sheet.write(1, 4, 'SNS')
+sheet.write(1, 5, 'RAS')
+sheet.write(1, 6, 'R_N')
+sheet.write(1, 7, 'N_N')
+sheet.write(1, 8, 'MID')
+sheet.write(1, 9, 'SNS')
+sheet.write(1, 10, 'RAS')
+sheet.write(1, 11, 'R_N')
+sheet.write(1, 12, 'N_N')
+sheet.write(1, 13, 'MID')
+sheet.write(1, 14, 'SNS')
+sheet.write(1, 15, 'RAS')
+
+def MID(X,Y):
+    n = len(X)
+    C = 0
+    for i in range(n):
+        C += np.sqrt(X[i]*X[i]+Y[i]*Y[i])
+    mid = C/n
+    return mid
+
+def SNS(MID,X,Y):
+    n = len(X)
+    fenzi = 0
+    for i in range(n):
+        C = np.sqrt(X[i]*X[i]+Y[i]*Y[i])
+        fenzi += (MID - C)*(MID - C)
+    sns = np.sqrt(fenzi/(n-1))
+    return sns
+
+def RAS(X,Y):
+    n = len(X)
+    fenzi = 0
+    for i in range(n):
+        minfit = min(X[i], Y[i])
+        fenzi += ((X[i]-minfit)/minfit + (Y[i]-minfit)/minfit)
+    ras = fenzi/n
+    return ras
 for i_index in range(len(num_job_list)):
-   # global num_machine,num_job,num_factory,update_popsize,GGA_popsize,local_search_size,ls_frequency,pop_gen,Elite_prob,block_number
     num_job = num_job_list[i_index]
     num_machine = num_machine_list[i_index]
     num_factory = 2
-    update_popsize = 200
-    GGA_popsize = 200
-    local_search_size = 20
-    ls_frequency = 10
+    update_popsize = 100
+    GGA_popsize = 100
+    local_search_size = 100
+    ls_frequency = 200
     pop_gen = 700
     Elite_prob = 0.2
     block_number = 3
@@ -43,20 +82,23 @@ for i_index in range(len(num_job_list)):
     japan2 = 0
     gga1 = 0
     gga2 = 0
+    bayes_mid = 0
+    bayes_sns = 0
+    bayes_ras = 0
+    japan_mid = 0
+    japan_sns = 0
+    japan_ras = 0
+    gga_mid = 0
+    gga_sns = 0
+    gga_ras = 0
     for run_number in range(20):
-        #time1 = time.clock()
         test_time = test_time_list[i_index]
         Japan = test_J.J_All_factory_dominated(num_factory,pop_gen,test_time,v,num_job, num_machine, test_data)
-       # time2 = time.clock()
-       # print('日本人程序共运行：%s'%(time2-time1))
-       # time1 = time.clock()
+        #Japan,timee = test_J.Japan_Multi_object(pop_gen, test_time,v,num_job, num_machine, test_data, num_factory)
         Bayes = test_B.B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data,local_search_size)
-       # time2 = time.clock()
-       # print('贝叶斯程序共运行：%s'%(time2-time1))
-       # time1 = time.clock()
+        #Bayes ,timmmm = test_B.Green_Bayes_net(pop_gen, ls_frequency, update_popsize, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data, num_factory,local_search_size)
         GGA = test_G.G_All_factory_dominated(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize,test_time,v)
-       # time2 = time.clock()
-       # print('GGA程序共运行：%s'%(time2-time1))
+        #GGA,tttt = test_G.GGA_main(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize, test_time,v)
         Japan_x = []
         Japan_y = []
         Bayes_x = []
@@ -90,12 +132,27 @@ for i_index in range(len(num_job_list)):
         # plt.grid()
         # plt.legend()
         # plt.show()
-        # bayes1 = 0
-        # bayes2 = 0
-        # japan1 = 0
-        # japan2 = 0
-        # gga1 = 0
-        # gga2 = 0
+        bayes_mid_temp = MID(Bayes_x, Bayes_y)
+        bayes_mid += bayes_mid_temp
+        bayes_sns_temp = SNS(bayes_mid_temp,Bayes_x, Bayes_y)
+        bayes_sns += bayes_sns_temp
+        bayes_ras_temp = RAS(Bayes_x, Bayes_y)
+        bayes_ras += bayes_ras_temp
+
+        japan_mid_temp = MID(Japan_x, Japan_y)
+        japan_mid += japan_mid_temp
+        japan_sns_temp = SNS(japan_mid_temp, Japan_x, Japan_y)
+        japan_sns += japan_sns_temp
+        japan_ras_temp = RAS(Japan_x, Japan_y)
+        japan_ras += japan_ras_temp
+
+        gga_mid_temp = MID(GGA_x, GGA_y)
+        gga_mid += gga_mid_temp
+        gga_sns_temp = SNS(gga_mid_temp, GGA_x, GGA_y)
+        gga_sns += gga_sns_temp
+        gga_ras_temp = RAS(GGA_x, GGA_y)
+        gga_ras += gga_ras_temp
+
         num_Japan_sol = len(Japan_x)
         num_Bayes_sol = len(Bayes_x)
         num_GGA_sol = len(GGA_x)
@@ -145,12 +202,30 @@ for i_index in range(len(num_job_list)):
     result_japan2 = japan2/20
     result_gga1 = gga1/20
     result_gga2 = gga2/20
-    sheet.write(i_index + 1, 0, '%s_%s' % (num_job, num_machine))
-    sheet.write(i_index + 1, 1, str(result_bayes1))
-    sheet.write(i_index + 1, 2, str(result_bayes2))
-    sheet.write(i_index + 1, 3, str(result_japan1))
-    sheet.write(i_index + 1, 4, str(result_japan2))
-    sheet.write(i_index + 1, 5, str(result_gga1))
-    sheet.write(i_index + 1, 6, str(result_gga2))
-    book.save('data\\data.xls')
+    result_bayes_mid = bayes_mid/20
+    result_bayes_sns = bayes_sns/20
+    result_bayes_ras = bayes_ras/20
+    result_japan_mid = japan_mid/20
+    result_japan_sns = japan_sns/20
+    result_japan_ras = japan_ras/20
+    result_gga_mid = gga_mid/20
+    result_gga_sns = gga_sns/20
+    result_gga_ras = gga_ras/20
+    sheet.write(i_index + 2, 0, '%s_%s' % (num_job, num_machine))
+    sheet.write(i_index + 2, 1, str(result_bayes1))
+    sheet.write(i_index + 2, 2, str(result_bayes2))
+    sheet.write(i_index + 2, 3, str(result_bayes_mid))
+    sheet.write(i_index + 2, 4, str(result_bayes_sns))
+    sheet.write(i_index + 2, 5, str(result_bayes_ras))
+    sheet.write(i_index + 2, 6, str(result_japan1))
+    sheet.write(i_index + 2, 7, str(result_japan2))
+    sheet.write(i_index + 2, 8, str(result_japan_mid))
+    sheet.write(i_index + 2, 9, str(result_japan_sns))
+    sheet.write(i_index + 2, 10, str(result_japan_ras))
+    sheet.write(i_index + 2, 11, str(result_gga1))
+    sheet.write(i_index + 2, 12, str(result_gga2))
+    sheet.write(i_index + 2, 13, str(result_gga_mid))
+    sheet.write(i_index + 2, 14, str(result_gga_sns))
+    sheet.write(i_index + 2, 15, str(result_gga_ras))
+book.save('data\\data.xls')
 
