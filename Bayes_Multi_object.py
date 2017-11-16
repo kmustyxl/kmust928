@@ -10,6 +10,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 import time
 import itertools
+import math
 def Green_Calcfitness(n, m, sort, test_data, v):
     c_time1 = np.zeros([n, m])
     c_time1[0][0] = test_data[sort[0]][0] / v[0][0]
@@ -37,7 +38,7 @@ def TCE(n, m, sort, test_data,v):
             Key_time -= test_data[sort[i]][k] / v[i][k]
         standy_time += Key_time
     Energy_consumption += standy_time * per_consumption_Standy
-    return C_time, Energy_consumption
+    return int(C_time), int(Energy_consumption)
 
 
 def green_initial_Bayes(num_machine, num_factory, factory_job_set, test_data, len_job, update_popsize,v):
@@ -114,19 +115,19 @@ def select_all_f_non_dominated_pop(temp_all_f_dominated):
     return temp_non_dominated_pop
 
 def Bayes_update(Mat_pop, factory_job_set, num_factory, len_job, update_popsize, non_dominated_pop):
-    prob_mat_first = [[1/len_job[k] for i in range(len_job[k])] for k in range(num_factory)]
+    prob_mat_first = [[0 for i in range(len_job[k])]for k in range(num_factory)]
     #返回每个工厂相邻两个工件的所有情况的概率分布
     for i in range(num_factory):
         #确定数据中第一个工件的出现概率
         index = 0
         demo = [ii[0] for ii in non_dominated_pop[i]]
         for job in factory_job_set[i]:
-            prob_mat_first[i][index] += demo.count(job) / int(update_popsize*0.2)
+            prob_mat_first[i][index] += demo.count(job) / len(non_dominated_pop[i])
             index += 1
         #每个工厂内分别有对应的（job_len - 1）个关系数组
-        zongshu = sum(prob_mat_first[i])
-        for j in range(len_job[i]):
-            prob_mat_first[i][j] = prob_mat_first[i][j]/zongshu  #归一化
+       # zongshu = sum(prob_mat_first[i])
+       # for j in range(len_job[i]):
+        #    prob_mat_first[i][j] = prob_mat_first[i][j]/zongshu  #归一化
     return prob_mat_first
 
 def Green_New_pop(prob_mat_first, num_factory, factory_job_set, Mat_pop, len_job,v,update_popsize,local_search_size,num_machine, test_data, non_dominated_pop):
@@ -153,30 +154,35 @@ def Green_New_pop(prob_mat_first, num_factory, factory_job_set, Mat_pop, len_job
                     elif ii[k - 1] == newpop[i][num][k - 1]:
                         temp_job.append(ii[k])
                 if len(temp_job) == 0:
-                    key = True
-                    while key:
-                        newpop_temp = choice(factory_job_set[i])
-                        if newpop_temp not in newpop[i][num]:
-                            newpop[i][num][k] = newpop_temp
-                            key = False
-                    continue
-                for m in range(len_job[i]):
-                    prob_mat[i][k - 1][m] += temp_job.count(factory_job_set[i][m]) / len(temp_job)
-                zongshu = sum(prob_mat[i][k - 1])
-                for m in range(len_job[i]):
-                    prob_mat[i][k - 1][m] = prob_mat[i][k - 1][m]/zongshu
-                B_index = True
-                while B_index:
-                    r = random.random()
-                    dichotomy = Roulette_prob(prob_mat[i][k - 1], len_job[i])
-                    begin = 0
-                    end = len_job[i] - 1
-                    j = Roulette_dichotomy(r, dichotomy, begin, end)
-                    if factory_job_set[i][j] in newpop[i][num]:
-                        B_index = True
-                    else:
-                        newpop[i][num][k] = factory_job_set[i][j]
-                        B_index = False
+                    shengyu_gongjian = list(set(factory_job_set[i]).difference(set(newpop[i][num])))
+                    #key = True
+                   # while key:
+                    newpop_temp = choice(shengyu_gongjian)
+                     #   if newpop_temp not in newpop[i][num]:
+                    newpop[i][num][k] = newpop_temp
+                            #key = False
+                   # continue
+                else:
+                    for m in range(len_job[i]):
+                        if factory_job_set[i][m] in newpop[i][num]:
+                            prob_mat[i][k - 1][m] = 0
+                        else:
+                            prob_mat[i][k - 1][m] += temp_job.count(factory_job_set[i][m]) / len(temp_job)
+                    zongshu = sum(prob_mat[i][k - 1])
+                    for m in range(len_job[i]):
+                        prob_mat[i][k - 1][m] = prob_mat[i][k - 1][m]/zongshu
+                    B_index = True
+                    while B_index:
+                        r = random.random()
+                        dichotomy = Roulette_prob(prob_mat[i][k - 1], len_job[i])
+                        begin = 0
+                        end = len_job[i] - 1
+                        j = Roulette_dichotomy(r, dichotomy, begin, end)
+                        if factory_job_set[i][j] in newpop[i][num]:
+                            B_index = True
+                        else:
+                            newpop[i][num][k] = factory_job_set[i][j]
+                            B_index = False
             newpop[i][num][len_job[i]], newpop[i][num][len_job[i]+1] = TCE(len_job[i], num_machine, newpop[i][num], test_data, v)
     return newpop
 
@@ -329,10 +335,10 @@ def interchange_insert(non_dominated_pop, ls_frequency, len_job, num_factory,v,n
                     temp2 = random.randint(0, len_job[i] - 1)
                 rand_pos1 = max(temp1, temp2)
                 rand_pos2 = min(temp1, temp2)
-                ls_temp_individual[:] = non_dominated_pop[i][l][:]
-                ls_temp_individual[rand_pos2] = non_dominated_pop[i][l][rand_pos1]
+                ls_temp_individual[:] = ls_pop[i][l][:]
+                ls_temp_individual[rand_pos2] = ls_pop[i][l][rand_pos1]
                 for k in range(rand_pos2 + 1, rand_pos1 + 1):
-                    ls_temp_individual[k] = non_dominated_pop[i][l][k - 1]
+                    ls_temp_individual[k] = ls_pop[i][l][k - 1]
                 ls_temp_individual[len_job[i]],ls_temp_individual[len_job[i] + 1] = TCE(len_job[i], num_machine, ls_temp_individual[0:len_job[i]],
                                                                                        test_data, v)
                 if ls_temp_individual[len_job[i]]<=non_dominated_pop[i][l][len_job[i]] and  ls_temp_individual[len_job[i]+1]<=non_dominated_pop[i][l][len_job[i]+1]:
@@ -343,13 +349,83 @@ def interchange_insert(non_dominated_pop, ls_frequency, len_job, num_factory,v,n
                     b = np.random.random()
                     if b <= 0.5:
                         non_dominated_pop[i][l][:] = ls_temp_individual[:]
-
+                ls_pop[i][l][:] = non_dominated_pop[i][l][:]
     return non_dominated_pop
 
 
 
 
             #------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+def block_insert(num_machine, demo, demo1,ls_frequency,select_position,num_factory,factory_job_set,len_job,v,test_data,block_number):
+    for i in range(num_factory):
+        all_position = [k for k in range(len_job[i])]       #所有位置
+        complete_individual = [-1 for k in range(len_job[i]+2)]     #初始化一个完整个体
+        all_block_position = []     #初始化所有块结构位置
+        block_position = list(select_position[i])       #记录每个工厂的块结构位置
+        for j in range(len(block_position)):        #记录块结构占的所有位置
+            all_block_position.append(block_position[j])
+            all_block_position.append(block_position[j] + 1)
+            all_block_position.append(block_position[j] + 2)
+        shengyu_position = list(set(all_position).difference(set(all_block_position)))      #记录剩余活动位置
+        shengyu_position = list(np.sort(shengyu_position))      #对活动位置从小到大排序
+        temp_individual = [-1 for k in range(len(shengyu_position))]        #初始化活动位置工件
+        for j in range(len(demo1[i])):
+            r = random.random()
+            if r > 0.7:
+                #分解块结构
+                all_block_position = []
+                block_position = list(select_position[i])
+                # 分解块结构操作
+                ppp = np.random.randint(1,int(block_number/5)+2)
+                for k in range(ppp):
+                    break_block = choice(block_position)
+                    block_position.remove(break_block)
+                for jj in range(len(block_position)):
+                    all_block_position.append(block_position[jj])
+                    all_block_position.append(block_position[jj] + 1)
+                    all_block_position.append(block_position[jj] + 2)
+                shengyu_position = list(set(all_position).difference(set(all_block_position)))
+                shengyu_position = list(np.sort(shengyu_position))
+                #temp_individual = [-1 for k in range(len(shengyu_position))]
+
+            #做interchange扰动
+            shengyu_gongjian = []
+            ls_pop = [-1 for k in range(len(shengyu_position))]
+            for k in range(len(shengyu_position)):
+                shengyu_gongjian.append(demo1[i][j][shengyu_position[k]])       #按照活动位置添加活动工件
+            temp_individual[:] = shengyu_gongjian[:]        #复制活动工件
+            temp1 = np.random.randint(0,len(shengyu_gongjian))
+            temp2 = np.random.randint(0, len(shengyu_gongjian))
+            while temp2 == temp1:
+                temp2 = np.random.randint(0, len(shengyu_gongjian))
+            temp_job = temp_individual[temp1]
+            temp_individual[temp1] = temp_individual[temp2]
+            temp_individual[temp2] = temp_job       #对活动工件进行一次interchange扰动
+            for l in range(ls_frequency):
+                #做insert操作
+                temp1 = np.random.randint(0, len(temp_individual))
+                temp2 = np.random.randint(0, len(temp_individual))
+                while temp2 == temp1:
+                    temp2 = np.random.randint(0, len(temp_individual))
+                rand_pos1 = max(temp1, temp2)
+                rand_pos2 = min(temp1, temp2)
+                ls_pop[:] = temp_individual[:]
+                ls_pop[rand_pos2] = temp_individual[rand_pos1]
+                for m in range(rand_pos2+1,rand_pos1+1):
+                    ls_pop[m] = temp_individual[m-1]
+                complete_individual[:] = demo1[i][j][:]
+                for m in range(len(shengyu_position)):
+                    complete_individual[shengyu_position[m]] = ls_pop[m]
+                complete_individual[len_job[i]], complete_individual[len_job[i]+1] = TCE(len_job[i], num_machine, complete_individual[0:len_job[i]],
+                                                                                       test_data, v)
+                if complete_individual[len_job[i]] <= demo1[i][j][len_job[i]] and complete_individual[len_job[i]+1] <= demo1[i][j][len_job[i]+1]:
+                    if complete_individual[len_job[i]] < demo1[i][j][len_job[i]] or complete_individual[len_job[i]+1]< demo1[i][j][len_job[i]+1]:
+                        demo1[i][j][:] = complete_individual[:]
+                for m in range(len(shengyu_position)):
+                    temp_individual[m] = demo1[i][j][shengyu_position[m]]
+
+    return demo1
 def block_3dim(non_dominated_pop, len_job, update_popsize,block_number,num_factory, num_job):
     block = [[] for i in range(num_factory)]
     select_block = [[] for i in range(num_factory)]
@@ -361,62 +437,47 @@ def block_3dim(non_dominated_pop, len_job, update_popsize,block_number,num_facto
                 block_Matrix[j, non_dominated_pop[i][k][j],non_dominated_pop[i][k][j+1],non_dominated_pop[i][k][j+2]] += 1
         location, height, raw, column = block_Matrix.shape
         key = True
-        for k in range(block_number):
+        select_job = []
+        #index = 0
+        while len(block[i]) < block_number:
             _positon = np.argmax(block_Matrix)
             loc = int(_positon /height/ raw / column)
             h = int((_positon-(height*raw*column)*loc) / raw / column)
             m, n = divmod((_positon-(height*raw*column)*loc) - (raw * column) * h, column)
-            block[i].append([loc, h, int(m), int(n)])
-                #block[i].append(block_Matrix[loc, h, int(m), int(n)])
-            block_Matrix[loc, h, int(m), int(n)] = 0
-    #---------------------------------------------------------------------------------------------
-    for i in range(num_factory):    #组合概率高的block 剔除存在冲突的block
-        #------------------------------------------------------------------------
-        select_job = set()
-        len_block = len(block[i])
-        if len_block == 0:
-            continue
-        for k in range(1,4):
-            select_job.add(block[i][0][k])
-        select_block[i].append(block[i][0])     #添加第一个块结构
-        select_location[i].append(block[i][0][0])       #记录第一个块结构的位置
-        for j in range(len_block):
-            for k in range(j,len_block):
-                if block[i][k][0] == block[i][j][0]:
-                    continue
-                if abs(block[i][k][0] - block[i][j][0])==1:
-                    if block[i][k][1] == block[i][j][2] and block[i][k][2] == block[i][j][2]:
-                        if block[i][k][3] not in select_job:
-                            select_job.add(block[i][k][3])
-                            select_block[i].append(block[i][k])
-                            select_location.append(block[i][k][0])
-                        if block[i][j][1] == block[i][k][2] and block[i][j][2] == block[i][k][2]:
-                            if block[i][j][3] not in select_job:
-                                select_job.add(block[i][j][3])
-                                select_block[i].append(block[i][j])
-                                select_location.append(block[i][j][0])
-                if abs(block[i][k][0] - block[i][j][0]) == 2:
-                    if block[i][k][1] == block[i][j][3]:
-                        if block[i][k][2] not in select_job and block[i][k][3] not in select_job:
-                            select_job.add(block[i][k][2])
-                            select_job.add(block[i][k][3])
-                            select_block[i].append(block[i][k])
-                            select_location.append(block[i][k][0])
-                        if block[i][j][2] not in select_job and block[i][j][3] not in select_job:
-                            select_job.add(block[i][j][2])
-                            select_job.add(block[i][j][3])
-                            select_block[i].append(block[i][j])
-                            select_location.append(block[i][j][0])
-                if abs(block[i][k][0] - block[i][j][0]) > 2:
-                    if (block[i][k][1] not in select_job and block[i][k][2] not in select_job) and block[i][k][3] not in select_job:
-                        select_job.add(block[i][k][1])
-                        select_job.add(block[i][k][2])
-                        select_job.add(block[i][k][3])
-                        select_block[i].append(block[i][k])
-                        select_location.append(block[i][k][0])
+            if block_Matrix[loc, h, int(m), int(n)] == 0:
+                break
+            else:
+                block[i].append([loc, h, int(m), int(n)])
+                select_location[i].append(block[i][-1][0])
+                for k in range(1, 4):
+                    select_job.append(block[i][-1][k])
+                #     #block[i].append(block_Matrix[loc, h, int(m), int(n)])
+                block_Matrix[loc, h, int(m), int(n)] = -1
+            len_block = len(block[i])
+            if len_block == 1:
+                continue
+            else:
+                for k in range(len_block-1):
+                    if abs(block[i][-1][0] - block[i][k][0]) < 3:
+                        select_job.pop()
+                        select_job.pop()
+                        select_job.pop()
+                        block[i].pop()
+                        select_location[i].pop()
+                        break
+                    else:
+                        #other_job = set(set(select_job).difference(set(block[i][-1][1:4])))
+                        for ll in range(1,4):
+                            if block[i][-1][ll] in select_job[0:-3]:
+                                block[i].pop()
+                                select_job.pop()
+                                select_job.pop()
+                                select_job.pop()
+                                select_location[i].pop()
+                                break
+                        break
 
-
-    return select_block
+    return block,select_location
 
 def block_based(block,  non_dominated_pop, factory_job_set, len_job, update_popsize,v,num_factory, num_machine,test_data):
     #根据精英集合构建的快结构生成新种群
@@ -424,12 +485,12 @@ def block_based(block,  non_dominated_pop, factory_job_set, len_job, update_pops
     len_job_other = [0 for i in range(num_factory)]
     block_Mat_pop = [[[-1 for i in range(len_job[k] + 2)] for j in range(update_popsize)] for k in range(num_factory)]
     for i in range(num_factory):
-        for j in range(len(non_dominated_pop[i])):
-            block_Mat_pop[i][j][:] = non_dominated_pop[i][j][:]
+        # for j in range(len(non_dominated_pop[i])):
+        #     block_Mat_pop[i][j][:] = non_dominated_pop[i][j][:]
         for j in range(len(block[i])):
             location = block[i][j][0]
             for k in range(1,len(block[i][j])):
-                for l in range(len(non_dominated_pop[i]),update_popsize):
+                for l in range(update_popsize):
                     block_Mat_pop[i][l][location] = block[i][j][k]
                 location += 1
     block_set = set()
@@ -442,7 +503,7 @@ def block_based(block,  non_dominated_pop, factory_job_set, len_job, update_pops
             if factory_job_set[i][j] not in block_set:
                 factory_job_set_other[i].append(factory_job_set[i][j])
         len_job_other[i] = len(factory_job_set_other[i])
-        for j in range(len(non_dominated_pop[i]),update_popsize):
+        for j in range(update_popsize):
             sort = random.sample(factory_job_set_other[i], len_job_other[i])
             index = 0
             for k in range(len_job[i]):
@@ -464,23 +525,85 @@ def Green_Bayes_net(pop_gen, ls_frequency, update_popsize, test_time,v,block_num
     temp_non_dominated = interchange_insert(non_dominated_pop, ls_frequency, len_job, num_factory, v, num_machine,test_data)
     non_dominated_pop = B_update_non_dominated(non_dominated_pop, temp_non_dominated, factory_job_set, num_factory)
     temp_list = []
-    for gen in range(50):
+    Each_gen_pareto = []
+    bayes_index = True
+    gen_index = -1
+    while bayes_index:
+        gen_index += 1
         prob_mat_first = Bayes_update(Mat_pop, factory_job_set, num_factory, len_job, update_popsize, non_dominated_pop)
         Mat_pop = Green_New_pop(prob_mat_first, num_factory, factory_job_set, Mat_pop, len_job,v,update_popsize,local_search_size,num_machine, test_data,non_dominated_pop)
+        Mat_pop = interchange_insert(Mat_pop, 2, len_job, num_factory, v, num_machine, test_data)
         temp_non_dominated = select_non_dominated_pop(num_factory, len_job, Mat_pop)
         temp_non_dominated = interchange_insert(temp_non_dominated, ls_frequency, len_job, num_factory,v,num_machine,test_data)
         non_dominated_pop = B_update_non_dominated(non_dominated_pop, temp_non_dominated,factory_job_set,num_factory)
+        Each_gen_pareto.append(non_dominated_pop)
+        distance1 = [0 for i in range(num_factory)]
+        distance2 = [0 for i in range(num_factory)]
+        yuzhidaishu = [10,20,30,40,50,60,70,80]
+        if gen_index in yuzhidaishu:
+            for j in range(num_factory):
+                for i in range(len(Each_gen_pareto[gen_index][j])):
+                    distance1[j] += math.sqrt(int(Each_gen_pareto[gen_index][j][i][-2])*int(Each_gen_pareto[gen_index][j][i][-2])+int(Each_gen_pareto[gen_index][j][i][-1])*int(Each_gen_pareto[gen_index][j][i][-1]))
+                distance1[j] = distance1[j] / int(len(Each_gen_pareto[gen_index][j]))
+                for i in range(len(Each_gen_pareto[gen_index-10][j])):
+                    distance2[j] += math.sqrt(int(Each_gen_pareto[gen_index-10][j][i][-2])*int(Each_gen_pareto[gen_index-10][j][i][-2])+int(Each_gen_pareto[gen_index-10][j][i][-1])*int(Each_gen_pareto[gen_index-10][j][i][-1]))
+                distance2[j] = distance2[j] / int(len(Each_gen_pareto[gen_index-10][j]))
+                TSD = abs(distance1[j]-distance2[j])/max(distance1[j],distance2[j])
+                if TSD < 0.001:
+                    bayes_index = False
+                    break
         test_timedown = time.clock()
         if float(test_timedown - test_timeup) >= float(test_time):
              break
-    demo = block_3dim(non_dominated_pop, len_job, update_popsize, block_number,num_factory, num_job)
-    demo1 = block_based(demo, non_dominated_pop, factory_job_set, len_job, update_popsize,v,num_factory, num_machine,test_data)
-    temp_non_dominated = select_non_dominated_pop(num_factory, len_job, demo1)
-    non_dominated_pop = B_update_non_dominated(non_dominated_pop, temp_non_dominated, factory_job_set, num_factory)
+    # demo ,select_position = block_3dim(non_dominated_pop, len_job, update_popsize, block_number,num_factory, num_job)
+    # demo1 = block_based(demo, non_dominated_pop, factory_job_set, len_job, update_popsize,v,num_factory, num_machine,test_data)
+    # temp_non_dominated = select_non_dominated_pop(num_factory, len_job, demo1)
+    # non_dominated_pop = B_update_non_dominated(non_dominated_pop, temp_non_dominated, factory_job_set, num_factory)
     test_time_mid = time.clock()
     print('单独贝叶斯程序共运行：%s' % (test_time_mid-test_timeup))
-    for gen in range(pop_gen-50):
-        demo1 = interchange_insert(demo1, 10, len_job, num_factory,v,num_machine,test_data)
+    for gen in range(700):
+        demo, select_position = block_3dim(non_dominated_pop, len_job, update_popsize, block_number, num_factory,
+                                           num_job)
+        demo1 = block_based(demo, non_dominated_pop, factory_job_set, len_job, update_popsize, v, num_factory,
+                            num_machine, test_data)
+        temp_non_dominated = select_non_dominated_pop(num_factory, len_job, demo1)
+        non_dominated_pop = B_update_non_dominated(non_dominated_pop, temp_non_dominated, factory_job_set, num_factory)
+        demo1 = block_insert(num_machine, demo, demo1,ls_frequency,select_position,num_factory,factory_job_set,len_job,v,test_data,block_number)
+        temp_non_dominated = select_non_dominated_pop(num_factory, len_job, demo1)
+        non_dominated_pop = B_update_non_dominated(non_dominated_pop, temp_non_dominated,factory_job_set,num_factory)
+        test_timedown = time.clock()
+        if float(test_timedown-test_timeup) >= float(test_time):
+            break
+    return non_dominated_pop, float(test_timedown-test_timeup)
+
+
+def dandu_siwei(pop_gen, ls_frequency, update_popsize, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data, num_factory,local_search_size):
+    test_timeup = time.clock()
+    factory_job_set = NEH2(num_job, num_machine, test_data, num_factory,v)
+    len_job = [len(factory_job_set[i]) for i in range(num_factory)]
+    Mat_pop,  non_dominated_pop= green_initial_Bayes(num_machine, num_factory, factory_job_set, test_data, len_job,update_popsize,v)
+    temp_non_dominated = interchange_insert(non_dominated_pop, ls_frequency, len_job, num_factory, v, num_machine,test_data)
+    non_dominated_pop = B_update_non_dominated(non_dominated_pop, temp_non_dominated, factory_job_set, num_factory)
+   # temp_list = []
+    for gen in range(700):
+        #prob_mat_first = Bayes_update(Mat_pop, factory_job_set, num_factory, len_job, update_popsize, non_dominated_pop)
+      #  Mat_pop = Green_New_pop(prob_mat_first, num_factory, factory_job_set, Mat_pop, len_job,v,update_popsize,local_search_size,num_machine, test_data,non_dominated_pop)
+       # Mat_pop = interchange_insert(Mat_pop, 2, len_job, num_factory, v, num_machine, test_data)
+       # temp_non_dominated = select_non_dominated_pop(num_factory, len_job, Mat_pop)
+       # temp_non_dominated = interchange_insert(temp_non_dominated, ls_frequency, len_job, num_factory,v,num_machine,test_data)
+       # non_dominated_pop = B_update_non_dominated(non_dominated_pop, temp_non_dominated,factory_job_set,num_factory)
+        #test_timedown = time.clock()
+       # if float(test_timedown - test_timeup) >= float(test_time):
+       #      break
+        demo ,select_position = block_3dim(non_dominated_pop, len_job, update_popsize, block_number,num_factory, num_job)
+        demo1 = block_based(demo, non_dominated_pop, factory_job_set, len_job, update_popsize,v,num_factory, num_machine,test_data)
+        temp_non_dominated = select_non_dominated_pop(num_factory, len_job, demo1)
+        non_dominated_pop = B_update_non_dominated(non_dominated_pop, temp_non_dominated, factory_job_set, num_factory)
+    #test_time_mid = time.clock()
+    #print('单独贝叶斯程序共运行：%s' % (test_time_mid-test_timeup))
+    #for gen in range(pop_gen-50):
+        demo1 = block_insert(num_machine, demo, demo1,ls_frequency,select_position,num_factory,factory_job_set,len_job,v,test_data)
+       # demo1 = interchange_insert(demo1, 100, len_job, num_factory,v,num_machine,test_data)
         # for i in range(num_factory):
         #     for k in range(int(local_search_size)):
         #         for j in range(update_popsize):
@@ -503,7 +626,6 @@ def Green_Bayes_net(pop_gen, ls_frequency, update_popsize, test_time,v,block_num
         if float(test_timedown-test_timeup) >= float(test_time):
             break
     return non_dominated_pop, float(test_timedown-test_timeup)
-
 def B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data,local_search_size):
     #根据每个工厂的帕累托解确定总工厂的解
     non_dominated_pop, run_time = Green_Bayes_net(pop_gen, ls_frequency, update_popsize, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data, num_factory,local_search_size)

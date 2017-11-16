@@ -45,7 +45,7 @@ def CalcFitness(n, m, test_data):
             c_time1[i][k] = test_data[i][k] + max(c_time1[i - 1][k], c_time1[i][k - 1])
     return c_time1[n - 1][m - 1]
 
-def NEH2(num_job, num_machine, test_data, num_factory,v):
+def NEH22222(num_job, num_machine, test_data, num_factory,v):
     first_job = []
     factory_job_set = [[] for i in range(num_factory)]
     first_job_index = []
@@ -98,7 +98,40 @@ def NEH2(num_job, num_machine, test_data, num_factory,v):
         k += 1
     return  factory_job_set
 
-
+def NEH2(num_job, num_machine, test_data, num_factory, v,):
+    first_job = []
+    factory_job_set = [[] for i in range(num_factory)]
+    first_job_index = []
+    factory_data = [[] for i in range(num_factory)]
+    factory_fit = [[] for i in range(num_factory)]
+    c_time = np.zeros([num_job, num_machine])
+    #确定每一个工厂的第一个排序工件号
+    temp = []
+    k = 0
+    for i in range(num_job):
+        temp.append(sum(test_data[i]))
+    first_job_index = np.argsort(temp)
+    for i in range(num_factory):
+        first_job.append(first_job_index[i] )
+        factory_job_set[i].append(first_job[i])
+        #为每个工厂分配第一个工件
+        factory_data[i].append(test_data[first_job_index[i]])
+    while True:
+        if k == num_job - num_factory :
+            break
+        for i in range(num_factory):
+            factory_job_set[i].append(first_job_index[num_factory + k])
+            factory_data[i].append(test_data[first_job_index[num_factory + k]])
+            factory_fit[i]= Green_Calcfitness(len(factory_data[i]),num_machine,factory_job_set[i],test_data,v)
+        index = np.argsort(factory_fit)[0]
+        for i in range(num_factory):
+            if i == index:
+                continue
+            else:
+                factory_job_set[i].pop()
+                factory_data[i].pop()
+        k += 1
+    return  factory_job_set
 
 def Bayes_update(Mat_pop, factory_job_set, num_factory, len_job, update_popsize):
     prob_mat_first = [[1/len_job[k] for i in range(len_job[k])] for k in range(num_factory)]

@@ -2,6 +2,9 @@ import matplotlib.pyplot as plt
 import Bayes_Multi_object as test_B
 import Japan_Multi_object as test_J
 import GGA_Multi_object  as test_G
+import Tradition_GGA as Trad_G
+import Tradition_Japan as Trad_J
+import Tradition_Bayes as Trad_B
 import numpy as np
 from AssignRule import *
 import xlwt
@@ -10,9 +13,9 @@ import xlrd
 import LoadData as ld
 book = xlwt.Workbook(encoding = 'utf-8')
 sheet = book.add_sheet('data')
-num_job_list =[20,30,30]#,50,50,50,70,70,70,100,100]
-num_machine_list =[5,5,10]#,5,10,20,5,10,20,10,20]
-test_time_list =[30.0,45.0,45.0]#,75.0,75.0,75.0,105.0,105.0,105.0,150.0,150.0]
+num_job_list =[30]
+num_machine_list =[5]
+test_time_list =[45.0]
 
 sheet.write(0, 1, 'Bayes')
 sheet.write(0, 6, 'Japan')
@@ -47,7 +50,7 @@ def SNS(MID,X,Y):
     for i in range(n):
         C = np.sqrt(X[i]*X[i]+Y[i]*Y[i])
         fenzi += (MID - C)*(MID - C)
-    sns = np.sqrt(fenzi/(n-1))
+    sns = np.sqrt(fenzi)/np.sqrt(n-1)
     return sns
 
 def RAS(X,Y):
@@ -65,10 +68,10 @@ for i_index in range(len(num_job_list)):
     update_popsize = 100
     GGA_popsize = 100
     local_search_size = 100
-    ls_frequency = 200
+    ls_frequency = 20
     pop_gen = 700
     Elite_prob = 0.2
-    block_number = 3
+    block_number = int(num_job/3)-2
     V = [1, 1.1, 1.2, 1.3, 1.4]
     v = np.zeros((num_job, num_machine))
     for iii in range(num_machine):
@@ -93,11 +96,14 @@ for i_index in range(len(num_job_list)):
     gga_ras = 0
     for run_number in range(20):
         test_time = test_time_list[i_index]
-        Japan = test_J.J_All_factory_dominated(num_factory,pop_gen,test_time,v,num_job, num_machine, test_data)
+        #Japan = test_J.J_All_factory_dominated(num_factory,pop_gen,test_time,v,num_job, num_machine, test_data)
+        Japan = Trad_J.Japan_Multi_object(pop_gen,test_time,v,num_job, num_machine, test_data, num_factory)
         #Japan,timee = test_J.Japan_Multi_object(pop_gen, test_time,v,num_job, num_machine, test_data, num_factory)
-        Bayes = test_B.B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data,local_search_size)
+        #Bayes = test_B.B_All_factory_dominated(pop_gen, ls_frequency,update_popsize, num_factory, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data,local_search_size)
+        Bayes = Trad_B.Green_Bayes_net(pop_gen, ls_frequency, update_popsize, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data, num_factory,local_search_size)
         #Bayes ,timmmm = test_B.Green_Bayes_net(pop_gen, ls_frequency, update_popsize, test_time,v,block_number,Elite_prob,num_job,num_machine, test_data, num_factory,local_search_size)
-        GGA = test_G.G_All_factory_dominated(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize,test_time,v)
+        #GGA = test_G.G_All_factory_dominated(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize,test_time,v)
+        GGA = Trad_G.GGA_main(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize, test_time,v)
         #GGA,tttt = test_G.GGA_main(pop_gen, num_job,num_machine, num_factory,test_data, GGA_popsize, test_time,v)
         Japan_x = []
         Japan_y = []
@@ -190,6 +196,9 @@ for i_index in range(len(num_job_list)):
         japan2+=(num_Japan_sol-num_Japan_pareto)
         gga1+=((num_GGA_sol-num_GGA_pareto)/num_GGA_sol)
         gga2+=(num_GGA_sol-num_GGA_pareto)
+        print('Bayes的解：%s'%Bayes)
+        print('Japan的解：%s'%Japan)
+        print('GGA的解：%s'%GGA)
         print('Bayes评价指标1： %.2f'%((num_Bayes_sol-num_Bayes_pareto)/num_Bayes_sol))
         print('Bayes评价指标2： %s'%(num_Bayes_sol-num_Bayes_pareto))
         print('Japan评价指标1： %.2f'%((num_Japan_sol-num_Japan_pareto)/num_Japan_sol))
